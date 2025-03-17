@@ -35,6 +35,29 @@ a {
   text-decoration: none;
 }
 
+.pac-icon {
+  display: none;
+}
+
+.pac-item {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+.pac-container {
+  box-shadow: none;
+  border-radius: 6px;
+  border: 1px solid #d9d9d9;
+  width: 100%;
+}
+
+.pac-container:after {
+  /* Disclaimer: not needed to show 'powered by Google' if also a Google Map is shown */
+
+  background-image: none !important;
+  height: 0px;
+}
+
 @media (prefers-color-scheme: dark) {
   html {
     color-scheme: dark;

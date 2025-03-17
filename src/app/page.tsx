@@ -1,95 +1,85 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+"use client";
+import { useUser } from "@auth0/nextjs-auth0/client";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { Layout, Menu, Button } from "antd";
+
+const { Header, Content } = Layout;
 
 export default function Home() {
-  return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol>
-          <li>
-            Get started by editing <code>src/app/page.tsx</code>.
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  console.log("Rendering Home page");
+  const { user, isLoading } = useUser();
 
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.secondary}
-          >
-            Read our docs
-          </a>
+  useEffect(() => {
+    if (!isLoading && !user) {
+      console.log("No user session found");
+    }
+  }, [isLoading, user]);
+
+  const [role, setRole] = useState<string | null>(null);
+  const [accountSetupIncomplete, setAccountSetupIncomplete] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      const roles: string[] = user[
+        "https://localhost-murphy.com/roles"
+      ] as string[];
+      if (roles && roles.length > 0) {
+        setRole(roles[0]);
+      } else {
+        fetch("/api/get-loggedin-user-role")
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.role) {
+              setRole(data.role);
+            } else if (data.accountsetupincomplete) {
+              setAccountSetupIncomplete(true);
+            }
+          })
+          .catch((err) => {
+            console.error("Error fetching user role:", err);
+          });
+      }
+    }
+  }, [user]);
+
+  return (
+    <Layout>
+      <Header style={{ display: "flex", justifyContent: "space-between" }}>
+        <div style={{ width: 100, height: 40, backgroundColor: "gray" }} />
+        <Menu theme="dark" mode="horizontal" style={{ flex: 1 }}>
+          <Menu.Item key="1">
+            <Link href="/">Home</Link>
+          </Menu.Item>
+        </Menu>
+        {!user ? (
+          <Button type="primary">
+            <Link href="/api/auth/login">Get Started</Link>
+          </Button>
+        ) : role ? (
+          <Button type="primary">
+            <Link href={`/dashboard/${role.toLowerCase()}`}>
+              Go to Dashboard
+            </Link>
+          </Button>
+        ) : accountSetupIncomplete ? (
+          <Button type="primary">
+            <Link href="/onboarding">Complete Account Setup</Link>
+          </Button>
+        ) : (
+          <Button type="primary">
+            <Link href="/get-started">Get Started</Link>
+          </Button>
+        )}
+      </Header>
+      <Content style={{ padding: "50px", textAlign: "center" }}>
+        <div style={{ padding: 24, minHeight: 380 }}>
+          <h1>Placeholder Title</h1>
+          <Button type="primary" size="large">
+            Get Started
+          </Button>
         </div>
-      </main>
-      <footer className={styles.footer}>
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+      </Content>
+    </Layout>
   );
 }
