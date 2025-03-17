@@ -65,15 +65,15 @@ export default function CareworkerDashboard() {
     }
     if (hours7Days) {
       console.log("Total hours", hours7Days.hoursLast7Days);
-      let totalHours = 0;
+      let tempTotalHours = 0;
+      let tempAvgHours = 0;
       hours7Days.hoursLast7Days?.forEach((set: Set) => {
-        totalHours += set.hours || 0;
+        tempTotalHours += set.hours || 0;
       });
-      console.log("Total hours", totalHours);
-      console.log("Average hours", totalHours / 7);
-      totalHours = Math.round(totalHours * 100) / 100;
-      setTotalHours(totalHours);
-      setAvgHours(totalHours / 7);
+      tempTotalHours = Math.round(tempTotalHours * 100) / 100;
+      tempAvgHours = Math.round((tempTotalHours / 7) * 100) / 100;
+      setTotalHours(tempTotalHours);
+      setAvgHours(tempAvgHours);
       const labels: string[] = [];
       const hours: number[] = [];
       hours7Days.hoursLast7Days?.forEach((set: Set) => {

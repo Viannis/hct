@@ -22,7 +22,7 @@ const isWithinRange = ({
   userLat: number;
   userLong: number;
 }) => {
-  const R = 6371000; // Radius of the Earth in meters
+  const R = 6371; // Radius of the Earth in Kms.
   const toRad = (angle: number) => (angle * Math.PI) / 180;
 
   const dLat = toRad(userLat - absLat);
@@ -36,7 +36,7 @@ const isWithinRange = ({
       Math.sin(dLon / 2) *
       Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const distance = R * c; // distance in meters
+  const distance = R * c; // distance in Kms.
 
   console.log("Distance", distance);
   console.log("Radius", absRadius);

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Layout, Menu, Button } from "antd";
 
-const { Header, Content } = Layout;
+const { Header } = Layout;
 
 export default function Home() {
   console.log("Rendering Home page");
@@ -43,43 +43,72 @@ export default function Home() {
     }
   }, [user]);
 
+  const renderButton = () => {
+    if (!user || !role) {
+      return (
+        <Button type="primary">
+          <Link href="/api/auth/login">Get Started</Link>
+        </Button>
+      );
+    } else if (role) {
+      return (
+        <Button type="primary">
+          <Link href={`/dashboard/${role.toLowerCase()}`}>Go to Dashboard</Link>
+        </Button>
+      );
+    } else if (accountSetupIncomplete) {
+      return (
+        <Button type="primary">
+          <Link href="/onboarding">Complete Account Setup</Link>
+        </Button>
+      );
+    }
+  };
+
   return (
-    <Layout>
-      <Header style={{ display: "flex", justifyContent: "space-between" }}>
-        <div style={{ width: 100, height: 40, backgroundColor: "gray" }} />
-        <Menu theme="dark" mode="horizontal" style={{ flex: 1 }}>
-          <Menu.Item key="1">
+    <Layout
+      style={{
+        height: "100vh",
+        width: "100vw",
+        backgroundColor: "#202020",
+      }}
+    >
+      <Header
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          backgroundColor: "transparent",
+          paddingTop: 24,
+          paddingLeft: 96,
+          paddingRight: 96,
+          paddingBottom: 24,
+        }}
+      >
+        <Menu
+          mode="horizontal"
+          style={{ flex: 1, backgroundColor: "transparent" }}
+        >
+          <Menu.Item key="1" style={{ color: "white" }}>
             <Link href="/">Home</Link>
           </Menu.Item>
         </Menu>
-        {!user ? (
-          <Button type="primary">
-            <Link href="/api/auth/login">Get Started</Link>
-          </Button>
-        ) : role ? (
-          <Button type="primary">
-            <Link href={`/dashboard/${role.toLowerCase()}`}>
-              Go to Dashboard
-            </Link>
-          </Button>
-        ) : accountSetupIncomplete ? (
-          <Button type="primary">
-            <Link href="/onboarding">Complete Account Setup</Link>
-          </Button>
-        ) : (
-          <Button type="primary">
-            <Link href="/get-started">Get Started</Link>
-          </Button>
-        )}
+        {renderButton()}
       </Header>
-      <Content style={{ padding: "50px", textAlign: "center" }}>
-        <div style={{ padding: 24, minHeight: 380 }}>
-          <h1>Placeholder Title</h1>
-          <Button type="primary" size="large">
-            Get Started
-          </Button>
+      {user && (
+        <div
+          style={{
+            color: "white",
+            width: "100%",
+            height: "100%",
+            marginTop: 128,
+            justifyContent: "center",
+            display: "flex",
+          }}
+        >
+          <h1>Welcome, {user.name}!</h1>
         </div>
-      </Content>
+      )}
     </Layout>
   );
 }

@@ -107,7 +107,14 @@ export default function DashboardLayout({
           borderRight: "1px solid #f0f0f0",
         }}
       >
-        <div style={{ height: 32, margin: 16, background: "#1890ff" }} />
+        <div
+          style={{
+            height: 32,
+            margin: 16,
+            background: "#1890ff",
+            borderRadius: 4,
+          }}
+        />
         <Menu
           mode="inline"
           selectedKeys={routeCheckForKey()}

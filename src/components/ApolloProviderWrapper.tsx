@@ -21,7 +21,7 @@ export default function ApolloProviderWrapper({
     const fetchTokenAndInitializeClient = async () => {
       try {
         // Fetch the access token from your API route
-        const response = await axios.get("/api/get-access-token");
+        const response = await axios.post("/api/get-access-token");
         const accessToken = response.data.accessToken;
         if (accessToken) {
           const apolloClient = initializeApolloClient(accessToken);

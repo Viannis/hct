@@ -1,4 +1,3 @@
-// src/app/api/graphql/route.ts
 import { ApolloServer } from "@apollo/server";
 import { startServerAndCreateNextHandler } from "@as-integrations/next";
 import typeDefs from "./schema";
@@ -6,17 +5,20 @@ import { resolvers } from "./resolvers";
 import { NextRequest, NextResponse } from "next/server";
 import { Claims, getSession } from "@auth0/nextjs-auth0";
 import { verifyAccessToken } from "@api/services";
-// Define the context type
+
+// Define the context type for Apollo Server
 type Context = {
   req: NextRequest;
   user?: Claims;
 };
 
+// Create the Apollo Server instance with your schema and resolvers
 const server = new ApolloServer<Context>({
   typeDefs,
   resolvers,
 });
 
+// Create the handler using the integration's helper function and define the context function
 const handler = startServerAndCreateNextHandler(server, {
   context: async (req: NextRequest): Promise<Context> => {
     console.log("GraphQL route called handler");
@@ -33,7 +35,7 @@ const handler = startServerAndCreateNextHandler(server, {
         throw new Error("Authorization token is required");
       }
 
-      console.log("Token found in grpahql route");
+      console.log("Token found in graphql route");
 
       try {
         const decodedToken = await verifyAccessToken(token);
@@ -47,9 +49,15 @@ const handler = startServerAndCreateNextHandler(server, {
     }
 
     console.log("Session found in graphql route", session.user);
-
     return { req, user: session.user };
   },
 });
 
-export { handler as GET, handler as POST };
+// Export GET and POST functions that wrap the handler to satisfy Next.js's expected signature
+export async function GET(req: NextRequest) {
+  return handler(req);
+}
+
+export async function POST(req: NextRequest) {
+  return handler(req);
+}

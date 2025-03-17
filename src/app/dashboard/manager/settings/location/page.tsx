@@ -9,7 +9,6 @@ import { useLoadScript, Libraries } from "@react-google-maps/api";
 import type { InputRef, NotificationArgsProps } from "antd";
 import { CREATE_LOCATION, UPDATE_LOCATION } from "@utils/mutations";
 import { Location } from "@prisma/client";
-// Removed unnecessary import for @types/google.maps
 
 const libraries: Libraries = ["places", "geocoding"];
 type NotificationPlacement = NotificationArgsProps["placement"];
@@ -339,11 +338,11 @@ export default function LocationPage() {
               />
             </Space>
             <Space direction="vertical">
-              <label htmlFor="radius">Radius (m)</label>
+              <label htmlFor="radius">Radius (Km.)</label>
               <Input
                 type="number"
                 name="radius"
-                placeholder="Enter radius in meters"
+                placeholder="Enter radius in Kms."
                 value={radius}
                 onChange={handleRadiusChange}
               />
@@ -373,7 +372,7 @@ export default function LocationPage() {
             </div>
             <div>
               <span>
-                <Text strong>Radius:</Text> {location.radius} mts
+                <Text strong>Radius:</Text> {location.radius} Kmts.
               </span>
             </div>
           </div>

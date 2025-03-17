@@ -2,7 +2,7 @@
 import { getAccessToken } from "@auth0/nextjs-auth0";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(req: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
     const tokenResponse = await getAccessToken(req, NextResponse.next());
     return NextResponse.json({ accessToken: tokenResponse.accessToken });
