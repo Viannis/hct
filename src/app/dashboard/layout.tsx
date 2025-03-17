@@ -41,7 +41,8 @@ export default function DashboardLayout({
     {
       key: "/api/auth/logout",
       icon: <LogoutOutlined />,
-      label: <Link href="/api/auth/logout">Logout</Link>,
+      // eslint-disable-next-line @next/next/no-html-link-for-pages
+      label: <a href="/api/auth/logout">Logout</a>,
     },
   ];
 
@@ -64,7 +65,8 @@ export default function DashboardLayout({
     {
       key: "/api/auth/logout",
       icon: <LogoutOutlined />,
-      label: <Link href="/api/auth/logout">Logout</Link>,
+      // eslint-disable-next-line @next/next/no-html-link-for-pages
+      label: <a href="/api/auth/logout">Logout</a>,
     },
   ];
 

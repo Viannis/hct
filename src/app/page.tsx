@@ -10,6 +10,10 @@ export default function Home() {
   console.log("Rendering Home page");
   const { user, isLoading } = useUser();
 
+  const handleLogin = () => {
+    window.location.href = "/api/auth/login";
+  };
+
   useEffect(() => {
     if (!isLoading && !user) {
       console.log("No user session found");
@@ -46,8 +50,8 @@ export default function Home() {
   const renderButton = () => {
     if (!user || !role) {
       return (
-        <Button type="primary">
-          <Link href="/api/auth/login">Get Started</Link>
+        <Button type="primary" onClick={handleLogin}>
+          Get Started
         </Button>
       );
     } else if (role) {
