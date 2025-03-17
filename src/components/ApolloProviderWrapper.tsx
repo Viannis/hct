@@ -11,9 +11,9 @@ import { initializeApolloClient } from "@utils/apolloClient"; // Adjust the impo
 
 export default function ApolloProviderWrapper({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   const [client, setClient] =
     useState<ApolloClient<NormalizedCacheObject> | null>(null);
 

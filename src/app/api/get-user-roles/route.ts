@@ -1,8 +1,7 @@
-import type { NextApiRequest, NextApiResponse } from "next";
 import { NextResponse } from "next/server";
 import axios from "axios";
 
-export async function GET(req: NextApiRequest, res: NextApiResponse) {
+export async function GET() {
   const domain = process.env.AUTH0_DOMAIN;
   const clientId = process.env.AUTH0_CLIENT_ID;
   const clientSecret = process.env.AUTH0_CLIENT_SECRET;
@@ -11,9 +10,10 @@ export async function GET(req: NextApiRequest, res: NextApiResponse) {
 
   if (!domain || !clientId || !clientSecret) {
     console.error("Missing Auth0 environment variables");
-    return res
-      .status(500)
-      .json({ error: "Missing Auth0 environment variables" });
+    return NextResponse.json(
+      { error: "Error fetching Aut0 Env Variables" },
+      { status: 500 }
+    );
   }
 
   try {
