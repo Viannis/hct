@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@auth0/nextjs-auth0";
 import { initializeApolloClient } from "@utils/apolloClient";
-import { GET_LOCATION } from "@utils/queries";
+import { getUserFromDb } from "@api/services";
 
 export async function GET(req: NextRequest) {
   const res = NextResponse.next();
@@ -19,31 +19,22 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  console.log("Refresh token", session.refreshToken);
-
   const apolloClient = initializeApolloClient(idToken);
 
-  const { data: locationData, error: locationDataError } =
-    await apolloClient.query({
-      query: GET_LOCATION,
-    });
+  const { userFromDB } = await getUserFromDb({
+    userAuth0Id: session.user.sub,
+    apolloClient: apolloClient,
+  });
 
-  if (locationDataError) {
+  if (!userFromDB) {
     return NextResponse.json(
-      { message: "Error fetching location data" },
-      { status: 500 }
-    );
-  }
-
-  if (!locationData) {
-    return NextResponse.json(
-      { message: "Location has not been set", hasLocationSet: false },
+      { message: "USER_NOT_FOUND", userInDb: userFromDB },
       { status: 200 }
     );
   }
 
   return NextResponse.json(
-    { message: "Location has been set", hasLocationSet: true },
+    { message: "USER_FOUND", userInDb: userFromDB },
     { status: 200 }
   );
 }

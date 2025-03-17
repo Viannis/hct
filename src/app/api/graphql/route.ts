@@ -38,7 +38,7 @@ const handler = startServerAndCreateNextHandler(server, {
       try {
         const decodedToken = await verifyAccessToken(token);
         console.log("Token Decoded");
-        const session = { user: decodedToken } as any;
+        const session = { user: decodedToken } as Claims;
         return { req, user: session.user };
       } catch (error) {
         console.error("Error verifying JWT token:", error);

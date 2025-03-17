@@ -125,7 +125,7 @@ export async function GET(req: NextRequest) {
   }
 
   if (!userFromDB) {
-    return NextResponse.json({ error: "USER_NOT_FOUND" }, { status: 404 });
+    return NextResponse.json({ userNotFound: true }, { status: 200 });
   }
 
   const userRoles = await fetchUserRoles(session.user.sub, access_token);

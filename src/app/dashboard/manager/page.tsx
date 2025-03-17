@@ -16,7 +16,6 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
-import { table } from "console";
 
 ChartJS.register(
   CategoryScale,
@@ -114,25 +113,18 @@ export default function ManagerDashboard() {
       setCompletedShifts(completedShiftData);
       setActiveShiftsCount(active.length);
       setShiftsCompletedCount(completed.length);
-      const activeStaff = new Set(active.map((shift: Shift) => shift.userId));
+      const activeStaff = new Set(active.map((shift: Shift) => shift.user.id));
+      const completedStaff = new Set(
+        completed.map((shift: Shift) => shift.user.id)
+      );
       setActiveStaffCount(activeStaff.size);
       console.log("Shifts today:", shiftsData.shiftsToday);
       console.log("Active shifts:", activeShiftData);
       console.log("Completed shifts:", completedShiftData);
+      console.log("Completed staff:", completedStaff);
       console.log("Active staff:", activeStaff);
     }
   }, [shiftsError, shiftsLoading, shiftsData]);
-
-  const clockedInStaff = [
-    {
-      key: "1",
-      name: "John Doe",
-      clockInTime: "08:00 AM",
-      location: "Main Hospital",
-      duration: "2h 30m",
-    },
-    // Add more staff data
-  ];
 
   const columnsCompleted = [
     {

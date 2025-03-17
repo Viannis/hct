@@ -1,18 +1,6 @@
-import { gql } from "@apollo/client";
-import { initializeApolloClient } from "@utils/apolloClient";
-import axios from "axios";
-
-const CREATE_USER_MUTATION = gql`
-  mutation CreateUser($input: CreateUserInput!) {
-    createUser(input: $input) {
-      id
-      name
-      email
-      role
-      auth0Id
-    }
-  }
-`;
+import { ApolloClient, NormalizedCacheObject } from "@apollo/client";
+import { CREATE_USER } from "@utils/mutations";
+import { User } from "@prisma/client";
 
 interface CreateUserInput {
   email: string;
@@ -21,28 +9,21 @@ interface CreateUserInput {
   auth0Id: string;
 }
 
-export const createUserInDb = async (input: CreateUserInput) => {
+export const createUserInDb = async ({
+  input,
+  apolloClient,
+}: {
+  input: CreateUserInput;
+  apolloClient: ApolloClient<NormalizedCacheObject>;
+}) => {
   try {
-    // Fetch the access token from your API route
-    const response = await axios.get("/api/get-token");
-    const accessToken = response.data.accessToken;
-    if (accessToken) {
-      const client = initializeApolloClient(accessToken);
-      try {
-        const { data } = await client.mutate({
-          mutation: CREATE_USER_MUTATION,
-          variables: { input },
-        });
-        return data.createUser;
-      } catch (error) {
-        throw new Error(`GraphQL error: ${error}`);
-      }
-    } else {
-      console.error("No access token received");
-      throw new Error("No access token received");
-    }
+    const result = await apolloClient.mutate({
+      mutation: CREATE_USER,
+      variables: { input },
+    });
+    return { userFromDB: result.data.createUser as User };
   } catch (error) {
-    console.error("Error fetching access token:", error);
-    throw new Error("Error fetching access token");
+    console.error("Error creating user in DB:", error);
+    throw error;
   }
 };

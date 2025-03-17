@@ -1,14 +1,39 @@
 // src/app/api/assign-role/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { getSession, updateSession } from "@auth0/nextjs-auth0";
+import {
+  getManagementAPIAccessToken,
+  createUserInDb,
+  updateUserRoleInAuth0,
+} from "@api/services";
+import { initializeApolloClient } from "@utils/apolloClient";
 import axios from "axios";
+
+type ReqBody = {
+  roleName: string;
+  name: string;
+};
 
 export async function POST(req: NextRequest) {
   console.log("Assigning role to user");
   const res = NextResponse.next();
-  const { roleName, name } = await req.json();
+  const { roleName, name } = (await req.json()) as ReqBody;
+  if (!roleName || !name) {
+    return NextResponse.json(
+      { error: "Role name and name are required" },
+      { status: 400 }
+    );
+  }
+
+  if (roleName.toLowerCase() !== "manager" || "caretaker") {
+    return NextResponse.json(
+      { error: "Role name must be either 'manager' or 'caretaker'" },
+      { status: 400 }
+    );
+  }
   console.log("Role & name:", roleName, name);
   const session = await getSession(req, res);
+  const accessToken = await getManagementAPIAccessToken();
 
   if (!session?.user) {
     console.log("Session not found or User not authenticated");
@@ -18,14 +43,48 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const idToken = session.idToken;
+  if (!idToken) {
+    console.error("Error fetching access token");
+    return NextResponse.json(
+      { error: "Error fetching access token" },
+      { status: 500 }
+    );
+  }
+
+  const apolloClient = initializeApolloClient(idToken);
+
+  if (!accessToken) {
+    console.error("Error fetching management API access token");
+    return NextResponse.json(
+      { error: "Error fetching management API access token" },
+      { status: 500 }
+    );
+  }
+
   console.log("Assigning role to user:", session.user.sub);
 
-  const userId = session.user.sub;
-  const domain = process.env.AUTH0_DOMAIN;
-  const clientId = process.env.AUTH0_CLIENT_ID;
-  const clientSecret = process.env.AUTH0_CLIENT_SECRET;
+  const { userFromDB } = await createUserInDb({
+    input: {
+      email: session.user.email,
+      name: name,
+      role: roleName.toUpperCase(),
+      auth0Id: session.user.sub,
+    },
+    apolloClient: apolloClient,
+  });
 
-  if (!domain || !clientId || !clientSecret) {
+  if (!userFromDB) {
+    console.error("Error creating user in DB:");
+    return NextResponse.json(
+      { error: "Error creating user in DB" },
+      { status: 500 }
+    );
+  }
+
+  const domain = process.env.AUTH0_DOMAIN;
+
+  if (!domain) {
     console.error("Missing Auth0 environment variables");
     return NextResponse.json(
       { error: "Missing Auth0 environment variables" },
@@ -33,121 +92,67 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  try {
-    const tokenResponse = await axios.post(`https://${domain}/oauth/token`, {
-      client_id: clientId,
-      client_secret: clientSecret,
-      audience: `https://${domain}/api/v2/`,
-      grant_type: "client_credentials",
-    });
+  const config = {
+    method: "get",
+    maxBodyLength: Infinity,
+    url: `https://${domain}/api/v2/roles`,
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+  };
 
-    const accessToken = tokenResponse.data.access_token;
+  const rolesResponse = await axios.request(config);
 
-    const rolesResponse = await axios.get(`https://${domain}/api/v2/roles`, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-
-    const role = rolesResponse.data.find(
-      (r: { name: string }) => r.name === roleName
+  if (!rolesResponse.data || !Array.isArray(rolesResponse.data)) {
+    console.error(
+      "Invalid response from Auth0: roles data is missing or not an array"
     );
-    if (!role) {
-      return NextResponse.json(
-        {
-          error: "Role from the client didn't match the roles from Auth0",
-        },
-        { status: 500 }
-      );
-    }
-
-    try {
-      console.log("Checking existing roles for user");
-      // Check if roles already exist for the user in Auth0
-      const existingRolesResponse = await axios.get(
-        `https://${domain}/api/v2/users/${userId}/roles`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      );
-
-      const existingRole = existingRolesResponse.data[0]?.name;
-      console.log("Existing roles for user:", existingRole);
-      if (existingRole) {
-        console.log("Role already exists for user:", existingRole);
-        return NextResponse.json({ role: existingRole }, { status: 202 });
-      }
-    } catch (error) {
-      console.error("Error checking existing roles:", error);
-      return NextResponse.json(
-        { error: "Error checking existing roles" },
-        { status: 500 }
-      );
-    }
-
-    const assignRoleResponse = await axios.post(
-      `https://${domain}/api/v2/users/${userId}/roles`,
-      { roles: [role.id] },
+    return NextResponse.json(
       {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      }
-    );
-
-    console.log("Role assigned successfully", assignRoleResponse.status);
-
-    // const data = JSON.stringify({
-    //   name: name,
-    // });
-
-    // const config = {
-    //   method: "patch",
-    //   maxBodyLength: Infinity,
-    //   url: `https://${domain}/api/v2/users/${userId}`,
-    //   headers: {
-    //     Authorization: `Bearer ${accessToken}`,
-    //     "Content-Type": "application/json",
-    //     Accept: "application/json",
-    //   },
-    //   data: data,
-    // };
-
-    // console.log("Updating user name:", data);
-
-    // const updateUserNameResponse = await axios(config);
-
-    // console.log("Update user name response:", updateUserNameResponse.status);
-
-    // if (updateUserNameResponse.status !== 200) {
-    //   console.error("Error updating user name:", updateUserNameResponse);
-    //   return NextResponse.json(
-    //     { error: "Error updating user name" },
-    //     { status: 500 }
-    //   );
-    // }
-
-    await updateSession(req, res, {
-      ...session,
-      user: {
-        ...session.user,
-        "https://localhost-murphy.com/roles": [roleName],
+        error:
+          "Invalid response from Auth0: roles data is missing or not an array",
       },
-    });
-
-    console.log("Role & name assigned successfully");
-
-    return NextResponse.json(
-      { message: "Role & name assigned successfully" },
-      { status: 200 }
-    );
-  } catch (error) {
-    console.error("Error in role assignment process:", error);
-    return NextResponse.json(
-      { error: "Error in role assignment process" },
       { status: 500 }
     );
   }
+
+  const role = rolesResponse.data.find(
+    (role) => role.name.toUpperCase() === userFromDB.role.toUpperCase()
+  );
+
+  if (!role) {
+    console.error("Role not found in Auth0");
+    return NextResponse.json(
+      { error: "Role not found in Auth0" },
+      { status: 404 }
+    );
+  }
+
+  const hasUpdatedRoleInAuth0 = await updateUserRoleInAuth0({
+    role: role,
+    accessToken: accessToken,
+    userId: session.user.sub,
+  });
+
+  if (!hasUpdatedRoleInAuth0) {
+    console.error("Error updating user role in Auth0");
+    return NextResponse.json(
+      { error: "Error updating user role in Auth0" },
+      { status: 500 }
+    );
+  }
+
+  await updateSession(req, res, {
+    ...session,
+    user: {
+      ...session.user,
+      "https://localhost-murphy.com/roles": [userFromDB.role],
+    },
+  });
+
+  return NextResponse.json(
+    { message: "Role & name assigned successfully", role: userFromDB.role },
+    { status: 200 }
+  );
 }
