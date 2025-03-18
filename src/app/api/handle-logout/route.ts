@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const domain = process.env.AUTH0_DOMAIN;
   const clientId = process.env.AUTH0_CLIENT_ID;
   const baseUrl = process.env.AUTH0_BASE_URL;
@@ -13,8 +13,11 @@ export async function GET() {
     );
   }
 
+  const { searchParams } = new URL(req.url);
+  const redirectPath = searchParams.get("redirect") ?? "/";
+
   const logoutUrl = `https://${domain}/v2/logout?client_id=${clientId}&returnTo=${encodeURIComponent(
-    baseUrl
+    baseUrl + redirectPath
   )}`;
 
   return NextResponse.redirect(logoutUrl);

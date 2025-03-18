@@ -69,7 +69,7 @@ export default function ManagerDashboard() {
   const [shiftsCompletedCount, setShiftsCompletedCount] = useState(0);
   const [activeShiftsCount, setActiveShiftsCount] = useState(0);
   const [activeStaffCount, setActiveStaffCount] = useState(0);
-  const [showLocationSetup, setShowLocationSetup] = useState(true);
+  const [showLocationSetup, setShowLocationSetup] = useState(false);
   const router = useRouter();
 
   useEffect(() => {

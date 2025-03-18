@@ -50,7 +50,7 @@ export default function DashboardLayout({
   }, [notificationConfig, api]);
 
   const handleLogout = async () => {
-    router.push("/api/handle-logout");
+    router.push("/api/auth/logout");
   };
 
   const managerMenuItems = [
