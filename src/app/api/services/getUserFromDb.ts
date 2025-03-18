@@ -18,6 +18,6 @@ export const getUserFromDb = async ({
     return { userFromDB: result.data.user };
   } catch (error) {
     console.error("Error fetching user from DB:", error);
-    throw error;
+    return { error: error };
   }
 };

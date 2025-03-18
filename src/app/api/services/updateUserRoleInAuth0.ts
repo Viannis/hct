@@ -3,10 +3,10 @@ import axios from "axios";
 const AUTH0_DOMAIN = process.env.AUTH0_DOMAIN;
 
 type UserRole = {
-    id: string;
-    name: string;
-    description?: string;
-  };
+  id: string;
+  name: string;
+  description?: string;
+};
 
 interface UpdateUserRoleParams {
   role: UserRole;
@@ -25,7 +25,7 @@ export async function updateUserRoleInAuth0({
     await axios.post(
       `https://${AUTH0_DOMAIN}/api/v2/users/${userId}/roles`,
       {
-        roles: [role],
+        roles: [role.id],
       },
       {
         headers: {

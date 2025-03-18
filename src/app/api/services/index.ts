@@ -5,3 +5,4 @@ export * from "./updateUserRoleInAuth0";
 export * from "./verifyUserRoleWithAuth0";
 export * from "./getManagementAPIAccessToken";
 export * from "./verifyAccessToken";
+export * from "./getAuthRoles";

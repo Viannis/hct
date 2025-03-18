@@ -14,7 +14,7 @@ export async function getUserRolesFromAuth0({
 }: {
   userId: string;
   accessToken: string;
-}): Promise<{ userRoles?: UserRole[], error?: string}> {
+}): Promise<{ userRoles?: UserRole[]; error?: string }> {
   try {
     const rolesResponse = await axios.get(
       `https://${AUTH0_DOMAIN}/api/v2/users/${userId}/roles`,
@@ -31,7 +31,7 @@ export async function getUserRolesFromAuth0({
       );
     }
 
-    return { userRoles: rolesResponse.data }
+    return { userRoles: rolesResponse.data };
   } catch (error) {
     console.error("Error fetching user roles from Auth0:", error);
     return { error: "Error fetching user roles from Auth0" };
