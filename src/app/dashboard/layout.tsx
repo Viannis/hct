@@ -7,10 +7,14 @@ import {
   LogoutOutlined,
   HistoryOutlined,
 } from "@ant-design/icons";
-import { usePathname } from "next/navigation";
-import { Menu, Layout } from "antd";
+import { usePathname, useRouter } from "next/navigation";
+import { Menu, Layout, Button, notification } from "antd";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import type { NotificationArgsProps } from "antd";
+
+type NotificationPlacement = NotificationArgsProps["placement"];
+type NotificationType = "success" | "info" | "warning" | "error";
 
 const { Sider, Content } = Layout;
 
@@ -20,7 +24,34 @@ export default function DashboardLayout({
   readonly children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
+  const [notificationConfig, setNotificationConfig] = useState<{
+    message: string;
+    description: string;
+    placement: NotificationPlacement;
+    type: NotificationType;
+    autoCloseDuration: number;
+  } | null>(null);
+  const [api, contextHolder] = notification.useNotification();
+
+  useEffect(() => {
+    if (notificationConfig) {
+      const { message, description, placement, type, autoCloseDuration } =
+        notificationConfig;
+      api[type]({
+        message,
+        description,
+        placement,
+        duration: autoCloseDuration,
+      });
+      setNotificationConfig(null); // Reset notification config after showing the notification
+    }
+  }, [notificationConfig, api]);
+
+  const handleLogout = async () => {
+    router.push("/api/handle-logout");
+  };
 
   const managerMenuItems = [
     {
@@ -42,7 +73,11 @@ export default function DashboardLayout({
       key: "/api/auth/logout",
       icon: <LogoutOutlined />,
       // eslint-disable-next-line @next/next/no-html-link-for-pages
-      label: <a href="/api/auth/logout">Logout</a>,
+      label: (
+        <Button type="text" style={{ padding: 0 }} onClick={handleLogout}>
+          Logout
+        </Button>
+      ),
     },
   ];
 
@@ -66,7 +101,11 @@ export default function DashboardLayout({
       key: "/api/auth/logout",
       icon: <LogoutOutlined />,
       // eslint-disable-next-line @next/next/no-html-link-for-pages
-      label: <a href="/api/auth/logout">Logout</a>,
+      label: (
+        <Button type="text" style={{ padding: 0 }} onClick={handleLogout}>
+          Logout
+        </Button>
+      ),
     },
   ];
 
@@ -90,48 +129,53 @@ export default function DashboardLayout({
   };
 
   return (
-    <Layout style={{ minHeight: "100vh" }}>
-      <Sider
-        theme="light"
-        breakpoint="lg"
-        onBreakpoint={(broken) => {
-          console.log(broken);
-        }}
-        collapsed={collapsed}
-        onCollapse={(value) => setCollapsed(value)}
-        style={{
-          overflow: "auto",
-          height: "100vh",
-          position: "fixed",
-          width: "20%",
-          maxWidth: 256,
-          left: 0,
-          borderRight: "1px solid #f0f0f0",
-        }}
-      >
-        <div
-          style={{
-            height: 32,
-            margin: 16,
-            background: "#1890ff",
-            borderRadius: 4,
+    <>
+      {contextHolder}
+      <Layout style={{ minHeight: "100vh" }}>
+        <Sider
+          theme="light"
+          breakpoint="lg"
+          onBreakpoint={(broken) => {
+            console.log(broken);
           }}
-        />
-        <Menu
-          mode="inline"
-          selectedKeys={routeCheckForKey()}
-          items={
-            pathname.startsWith("/dashboard/manager")
-              ? managerMenuItems
-              : careTakerMenuItems
-          }
-        />
-      </Sider>
-      <Layout style={{ marginLeft: collapsed ? 79 : 200, background: "#fff" }}>
-        <Content style={{ margin: "24px 16px", padding: 24 }}>
-          {children}
-        </Content>
+          collapsed={collapsed}
+          onCollapse={(value) => setCollapsed(value)}
+          style={{
+            overflow: "auto",
+            height: "100vh",
+            position: "fixed",
+            width: "20%",
+            maxWidth: 256,
+            left: 0,
+            borderRight: "1px solid #f0f0f0",
+          }}
+        >
+          <div
+            style={{
+              height: 32,
+              margin: 16,
+              background: "#1890ff",
+              borderRadius: 4,
+            }}
+          />
+          <Menu
+            mode="inline"
+            selectedKeys={routeCheckForKey()}
+            items={
+              pathname.startsWith("/dashboard/manager")
+                ? managerMenuItems
+                : careTakerMenuItems
+            }
+          />
+        </Sider>
+        <Layout
+          style={{ marginLeft: collapsed ? 79 : 200, background: "#fff" }}
+        >
+          <Content style={{ margin: "24px 16px", padding: 24 }}>
+            {children}
+          </Content>
+        </Layout>
       </Layout>
-    </Layout>
+    </>
   );
 }
