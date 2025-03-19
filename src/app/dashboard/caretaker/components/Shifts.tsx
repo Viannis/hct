@@ -1,34 +1,48 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Input, Table, Button, Modal, Flex, notification } from "antd";
-import { useQuery, useMutation } from "@apollo/client";
-import { useUser } from "@auth0/nextjs-auth0/client";
+import React, { useState, useEffect, useRef } from "react";
+import {
+  Input,
+  Table,
+  Button,
+  Modal,
+  Flex,
+  notification,
+  Skeleton,
+  Select,
+} from "antd";
 import { Shift } from "@prisma/client";
 import type { NotificationArgsProps } from "antd";
-import { GET_SHIFTS, GET_LOCATION } from "@utils/queries";
-import { CLOCK_OUT, CLOCK_IN } from "@utils/mutations";
+import { useShifts } from "../context/ShiftsContext"; // Import the useShifts hook
 import moment from "moment";
-import axios from "axios";
 
 type NotificationPlacement = NotificationArgsProps["placement"];
 type NotificationType = "success" | "info" | "warning" | "error";
 
+const { Option } = Select;
+
+const placeholderShift: Shift = {
+  id: "loading",
+  clockIn: new Date(),
+  clockOut: null,
+  clockInNote: "Loading...",
+  clockOutNote: null,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  userId: "loading",
+};
+
 const Shifts = () => {
   const {
-    data: locationData,
-    loading: fetchingLocation,
-    error: errorFetchingLocation,
-  } = useQuery(GET_LOCATION);
-  const { user, isLoading: userLoading, error: userError } = useUser();
-  const {
-    data: shiftsData,
-    loading: shiftsDataLoading,
-    error: shiftsDataError,
-  } = useQuery(GET_SHIFTS, {
-    variables: { userId: user?.sub },
-    skip: !user, // Skip the query if user is not available
-  });
+    shifts,
+    location,
+    loading,
+    handleClockIn,
+    handleClockOut,
+    error,
+    handleDateRangeChange,
+    setLoading,
+  } = useShifts(); // Destructure context values
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedShift, setSelectedShift] = useState<Shift | null>(null);
   const [notificationConfig, setNotificationConfig] = useState<{
@@ -40,86 +54,28 @@ const Shifts = () => {
   } | null>(null);
 
   const [api, contextHolder] = notification.useNotification();
-  const [hasLocationSet, setHasLocationSet] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [canClockIn, setCanClockIn] = useState(false);
   const [needClockOut, setNeedClockOut] = useState(false);
-  const [currentShift, setCurrentShift] = useState<Shift | null>(null);
   const [note, setNote] = useState("");
-  const [isClockInOutLoading, setIsClockInOutLoading] = useState(false);
+  const [isAddingShift, setIsAddingShift] = useState(false);
+  const [dateRange, setDateRange] = useState("1 week"); // State for date range
 
-  const [clockInMutation] = useMutation(CLOCK_IN, {
-    update(cache, { data: { clockIn } }) {
-      const { shifts } = cache.readQuery({
-        query: GET_SHIFTS,
-        variables: { userId: user?.sub },
-      }) as { shifts: Shift[] };
-
-      cache.writeQuery({
-        query: GET_SHIFTS,
-        variables: { userId: user?.sub },
-        data: { shifts: [clockIn, ...shifts] },
-      });
-    },
-  });
-
-  const [clockOutMutation] = useMutation(CLOCK_OUT, {
-    update(cache, { data: { clockOut } }) {
-      const { shifts } = cache.readQuery({
-        query: GET_SHIFTS,
-        variables: { userId: user?.sub },
-      }) as { shifts: Shift[] };
-
-      cache.writeQuery({
-        query: GET_SHIFTS,
-        variables: { userId: user?.sub },
-        data: {
-          shifts: shifts.map((shift) =>
-            shift.id === clockOut.id ? clockOut : shift
-          ),
-        },
-      });
-    },
-  });
+  const previousDateRange = useRef(dateRange);
 
   useEffect(() => {
-    const fetchLocationStatus = async () => {
-      try {
-        const response = await axios.get("/api/has-location-set");
-        const data = response.data;
-        console.log(data);
-
-        if (data.hasLocationSet) {
-          setHasLocationSet(true);
-        } else {
-          setHasLocationSet(false);
-        }
-      } catch (error) {
-        console.error("Error fetching location status:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchLocationStatus();
-  }, []);
-
-  useEffect(() => {
-    console.log("Shifts data:", shiftsData);
-    setCurrentShift(shiftsData?.shifts[0] ?? null);
-    if (!shiftsData?.shifts[0]) {
+    if (!shifts[0]) {
       setCanClockIn(true);
       setNeedClockOut(false);
       return;
     }
-    if (shiftsData?.shifts[0].clockOut) {
+    if (shifts[0].clockOut) {
       setCanClockIn(true);
       setNeedClockOut(false);
     } else {
       setCanClockIn(false);
       setNeedClockOut(true);
     }
-  }, [shiftsData]);
+  }, [shifts]);
 
   useEffect(() => {
     if (notificationConfig) {
@@ -135,195 +91,168 @@ const Shifts = () => {
     }
   }, [notificationConfig, api]);
 
-  if (fetchingLocation || userLoading || shiftsDataLoading) {
-    return <div>Loading...</div>;
-  }
+  const handleDateRangeSelect = (value: string) => {
+    setLoading((prev) => ({ ...prev, shiftsRefetching: true }));
+    const endDate = new Date();
+    const startDate = new Date();
 
-  if (errorFetchingLocation) {
-    return <div>Error loading location: {errorFetchingLocation.message}</div>;
-  }
+    switch (value) {
+      case "1 week":
+        startDate.setDate(endDate.getDate() - 7);
+        setDateRange("1 week");
+        break;
+      case "1 month":
+        startDate.setMonth(endDate.getMonth() - 1);
+        setDateRange("1 month");
+        break;
+      case "6 months":
+        startDate.setMonth(endDate.getMonth() - 6);
+        setDateRange("6 months");
+        break;
+    }
 
-  if (userError) {
-    return <div>Error loading user: {userError.message}</div>;
-  }
+    handleDateRangeChange(startDate, endDate)
+      .then(() => {
+        setLoading((prev) => ({ ...prev, shiftsRefetching: false }));
+        previousDateRange.current = value; // Update the ref on successful change
+        setDateRange(value);
+      })
+      .catch((error) => {
+        console.error("Error fetching shifts", error);
+        setLoading((prev) => ({ ...prev, shiftsRefetching: false }));
+        notification.error({
+          message: "Error fetching shifts",
+          description: error.message,
+          placement: "topRight",
+          duration: 0,
+        });
+        setDateRange(previousDateRange.current); // Revert to previous date range on error
+      });
+  };
 
-  if (shiftsDataError) {
-    return <div>Error loading shifts: {shiftsDataError.message}</div>;
-  }
+  const isWithinRange = ({
+    absLat,
+    absLong,
+    absRadius,
+    userLat,
+    userLong,
+  }: {
+    absLat: number;
+    absLong: number;
+    absRadius: number;
+    userLat: number;
+    userLong: number;
+  }) => {
+    const R = 6371; // Radius of the Earth in Kms.
+    const toRad = (angle: number) => (angle * Math.PI) / 180;
 
-  if (!locationData?.location) {
-    return (
-      <div>
-        Shifts can only be clocked in after your manager sets up a location
-      </div>
-    );
-  }
+    const dLat = toRad(userLat - absLat);
+    const dLon = toRad(userLong - absLong);
 
-  const handleClockIn = async () => {
-    setIsClockInOutLoading(true);
-    if (navigator.geolocation) {
+    // Haversine formula
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(absLat)) *
+        Math.cos(toRad(userLat)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distance = R * c; // distance in Kms.
+
+    console.log("Distance", distance);
+    console.log("Radius", absRadius);
+
+    return distance <= absRadius;
+  };
+
+  const handleGeolocationSuccess = async (position: GeolocationPosition) => {
+    if (!location) {
+      setNotificationConfig({
+        message: "Location data is unavailable",
+        description: "Please ensure location services are enabled.",
+        placement: "topRight",
+        type: "error",
+        autoCloseDuration: 5,
+      });
+      setIsAddingShift(false);
+      setLoading((prev) => ({ ...prev, clockInOut: false }));
+      return;
+    }
+
+    const { latitude, longitude } = position.coords;
+    const isUserInRange = isWithinRange({
+      absLat: location.latitude,
+      absLong: location.longitude,
+      absRadius: location.radius,
+      userLat: latitude,
+      userLong: longitude,
+    });
+
+    if (isUserInRange) {
+      console.log("User is in the location range");
+      try {
+        await handleClockIn(note);
+        setNotificationConfig({
+          message: "Success",
+          description: "Clocked in successfully",
+          placement: "topLeft",
+          type: "success",
+          autoCloseDuration: 3,
+        });
+        setNote("");
+        setIsAddingShift(false);
+        setLoading((prev) => ({ ...prev, clockInOut: false }));
+        return;
+      } catch (error) {
+        console.log("Error clocking in:", error);
+        setNotificationConfig({
+          message: "Error",
+          description: "Failed to clock in",
+          placement: "topLeft",
+          type: "error",
+          autoCloseDuration: 5,
+        });
+        setIsAddingShift(false);
+        setLoading((prev) => ({ ...prev, clockInOut: false }));
+        return;
+      } finally {
+        setIsAddingShift(false);
+        setLoading((prev) => ({ ...prev, clockInOut: false }));
+      }
+    } else {
+      setNotificationConfig({
+        message: "You are not in the location range",
+        description: "Try moving to the location and try again",
+        placement: "topLeft",
+        type: "error",
+        autoCloseDuration: 5,
+      });
+      setIsAddingShift(false);
+      setLoading((prev) => ({ ...prev, clockInOut: false }));
+    }
+  };
+
+  const handleGeolocationError = (error: GeolocationPositionError) => {
+    setNotificationConfig({
+      message: "Error getting your position",
+      description:
+        "Check if you have provided location permission or try using a different browser",
+      placement: "topRight",
+      type: "error",
+      autoCloseDuration: 0,
+    });
+    console.error("Error getting position:", error);
+    setIsAddingShift(false);
+    setLoading((prev) => ({ ...prev, clockInOut: false }));
+  };
+
+  const clockIn = async () => {
+    setLoading((prev) => ({ ...prev, clockInOut: true }));
+    setIsAddingShift(true);
+    if (location && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const { latitude, longitude } = position.coords;
-          try {
-            const config = {
-              params: {
-                latitude,
-                longitude,
-              },
-            };
-            const isUserInRangeResponse = await axios.get(
-              "/api/verify-location-range",
-              config
-            );
-            const isUserInRange = isUserInRangeResponse.data.isUserInRange;
-            if (isUserInRange) {
-              console.log("User is in the location range");
-              try {
-                await clockInMutation({
-                  variables: {
-                    input: {
-                      note: note,
-                    },
-                  },
-                });
-
-                setNotificationConfig({
-                  message: "Success",
-                  description: "Clocked in successfully",
-                  placement: "topLeft",
-                  type: "success",
-                  autoCloseDuration: 3,
-                });
-                setIsClockInOutLoading(false);
-                setNote("");
-                return;
-              } catch (error) {
-                console.log("Error clocking in:", error);
-                setNotificationConfig({
-                  message: "Error",
-                  description: "Failed to clock in",
-                  placement: "topLeft",
-                  type: "error",
-                  autoCloseDuration: 5,
-                });
-              }
-              setIsClockInOutLoading(false);
-              return;
-            }
-            setNotificationConfig({
-              message: "Your are not in the location range",
-              description: "Try moving to the location and try again",
-              placement: "topLeft",
-              type: "error",
-              autoCloseDuration: 5,
-            });
-            console.log(isUserInRangeResponse.data);
-            setIsClockInOutLoading(false);
-            return;
-          } catch (error) {
-            console.log("Error verifying location", error);
-            setIsClockInOutLoading(false);
-            return;
-          }
-        },
-        (error) => {
-          if (error.code === error.PERMISSION_DENIED) {
-            navigator.geolocation.getCurrentPosition(
-              async (position) => {
-                const { latitude, longitude } = position.coords;
-                try {
-                  const config = {
-                    params: {
-                      latitude,
-                      longitude,
-                    },
-                  };
-                  const isUserInRangeResponse = await axios.get(
-                    "/api/verify-location-range",
-                    config
-                  );
-                  const isUserInRange =
-                    isUserInRangeResponse.data.isUserInRange;
-                  if (isUserInRange) {
-                    console.log("User is in the location range");
-                    try {
-                      await clockInMutation({
-                        variables: {
-                          input: {
-                            note: note,
-                          },
-                        },
-                      });
-
-                      setNotificationConfig({
-                        message: "Success",
-                        description: "Clocked in successfully",
-                        placement: "topLeft",
-                        type: "success",
-                        autoCloseDuration: 3,
-                      });
-                      setIsClockInOutLoading(false);
-                      setNote("");
-                      return;
-                    } catch (error) {
-                      console.log("Error clocking in:", error);
-                      setNotificationConfig({
-                        message: "Error",
-                        description: "Failed to clock in",
-                        placement: "topLeft",
-                        type: "error",
-                        autoCloseDuration: 5,
-                      });
-                    }
-                    setIsClockInOutLoading(false);
-                    return;
-                  }
-                  setNotificationConfig({
-                    message: "Your are not in the location range",
-                    description: "Try moving to the location and try again",
-                    placement: "topLeft",
-                    type: "error",
-                    autoCloseDuration: 5,
-                  });
-                  console.log(isUserInRangeResponse.data);
-                  setIsClockInOutLoading(false);
-                  return;
-                } catch (error) {
-                  console.log("Error verifying location", error);
-                  setIsClockInOutLoading(false);
-                  return;
-                }
-              },
-              (error) => {
-                setNotificationConfig({
-                  message: "Error getting position",
-                  description:
-                    "Try different browser or check location settings",
-                  placement: "topLeft",
-                  type: "error",
-                  autoCloseDuration: 0,
-                });
-                console.error(
-                  "Error getting position after requesting permission:",
-                  error
-                );
-                setIsClockInOutLoading(false);
-              }
-            );
-          } else {
-            setNotificationConfig({
-              message: "Error getting your position",
-              description:
-                "Check if you have provided location permission or try using a different browser",
-              placement: "topRight",
-              type: "error",
-              autoCloseDuration: 0,
-            });
-            console.error("Error getting position:", error);
-            setIsClockInOutLoading(false);
-          }
-        }
+        handleGeolocationSuccess,
+        handleGeolocationError
       );
     } else {
       setNotificationConfig({
@@ -333,56 +262,34 @@ const Shifts = () => {
         type: "error",
         autoCloseDuration: 0,
       });
-      setIsClockInOutLoading(false);
+      setLoading((prev) => ({ ...prev, clockInOut: false }));
+      setIsAddingShift(false);
     }
   };
 
-  const handleClockOut = async () => {
-    setIsClockInOutLoading(true);
-    console.log("Current shift:", currentShift?.id);
-    if (!currentShift?.id) {
-      setNotificationConfig({
-        message: "Error",
-        description: "No shift found to clock out",
-        placement: "topRight",
-        type: "error",
-        autoCloseDuration: 0,
-      });
-      setNote("");
-      setIsClockInOutLoading(false);
-      return;
-    }
-
+  const clockOut = async () => {
+    setLoading((prev) => ({ ...prev, clockInOut: true }));
     try {
-      await clockOutMutation({
-        variables: {
-          input: {
-            id: currentShift.id,
-            note: note,
-          },
-        },
-      });
-
+      await handleClockOut(shifts[0]?.id, note);
       setNotificationConfig({
         message: "Success",
         description: "Clocked out successfully",
-        placement: "topRight",
+        placement: "topLeft",
         type: "success",
         autoCloseDuration: 3,
       });
-      setIsClockInOutLoading(false);
       setNote("");
-      return;
+      setLoading((prev) => ({ ...prev, clockInOut: false }));
     } catch (error) {
       console.log("Error clocking out:", error);
       setNotificationConfig({
         message: "Error",
         description: "Failed to clock out",
-        placement: "topRight",
+        placement: "topLeft",
         type: "error",
-        autoCloseDuration: 0,
+        autoCloseDuration: 5,
       });
-      setIsClockInOutLoading(false);
+      setLoading((prev) => ({ ...prev, clockInOut: false }));
     }
   };
 
@@ -442,12 +349,10 @@ const Shifts = () => {
   ];
 
   const renderContent = () => {
-    if (isLoading) {
-      return <div>Loading...</div>;
-    } else if (!hasLocationSet) {
-      return (
-        <div>Can&apos;t clock in until your manager sets up a location.</div>
-      );
+    if (loading.shifts) {
+      return <Skeleton active paragraph={{ rows: 4 }} />;
+    } else if (error.shifts) {
+      return <div>Error fetching shifts</div>;
     } else if (canClockIn || needClockOut) {
       return (
         <>
@@ -458,25 +363,34 @@ const Shifts = () => {
           >
             <h1>Shifts</h1>
             <Flex justify="flex-end" gap={12} align="center">
+              <Select
+                defaultValue={dateRange}
+                style={{ width: 120, marginRight: 12 }}
+                onChange={handleDateRangeSelect}
+              >
+                <Option value="1 week">1 Week</Option>
+                <Option value="1 month">1 Month</Option>
+                <Option value="6 months">6 Months</Option>
+              </Select>
               <Input
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="Add a note (optional)"
                 style={{ maxWidth: 300 }}
               />
-              {canClockIn ? (
+              {shifts[0]?.clockOut ? (
                 <Button
                   type="primary"
-                  onClick={handleClockIn}
-                  loading={isClockInOutLoading}
+                  onClick={clockIn}
+                  loading={loading.clockInOut}
                 >
                   Clock In
                 </Button>
               ) : (
                 <Button
                   type="primary"
-                  onClick={handleClockOut}
-                  loading={isClockInOutLoading}
+                  onClick={clockOut}
+                  loading={loading.clockInOut}
                 >
                   Clock Out
                 </Button>
@@ -485,8 +399,10 @@ const Shifts = () => {
           </Flex>
           <Table
             columns={columns}
-            dataSource={shiftsData?.shifts}
+            loading={loading.shiftsRefetching}
+            dataSource={isAddingShift ? [placeholderShift, ...shifts] : shifts}
             rowKey="id"
+            pagination={{ pageSize: 10 }}
           />
         </>
       );

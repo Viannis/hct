@@ -61,8 +61,8 @@ export const GET_CARETAKER_SHIFTS = gql`
 `;
 
 export const GET_SHIFTS = gql`
-  query GetShifts($userId: ID!) {
-    shifts(userId: $userId) {
+  query GetShifts($userId: ID!, $dateRange: DateRangeInput) {
+    shifts(userId: $userId, dateRange: $dateRange) {
       id
       clockIn
       clockOut
@@ -76,9 +76,9 @@ export const GET_SHIFTS = gql`
   }
 `;
 
-export const GET_SHIFTS_TODAY = gql`
-  query GetShiftsToday {
-    shiftsToday {
+export const GET_ALL_SHIFTS = gql`
+  query GetAllShifts($dateRange: DateRangeInput) {
+    allShifts(dateRange: $dateRange) {
       id
       clockIn
       clockOut
@@ -87,6 +87,18 @@ export const GET_SHIFTS_TODAY = gql`
       user {
         id
         name
+      }
+    }
+  }
+`;
+
+export const GET_HOURS_PER_DATE_RANGE = gql`
+  query GetHoursPerDateRange($dateRange: DateRangeInput) {
+    hoursPerDateRange(dateRange: $dateRange) {
+      userName
+      dailyTotals {
+        date
+        hours
       }
     }
   }

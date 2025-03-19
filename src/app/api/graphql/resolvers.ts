@@ -18,6 +18,17 @@ type ErrorResponse = {
   };
 };
 
+type DailyTotal = {
+  date: string;
+  hours: number;
+};
+
+type UserDailyHours = {
+  userId: string;
+  userName: string;
+  dailyTotals: DailyTotal[];
+};
+
 const errorResponse = (status: number): ErrorResponse => {
   switch (status) {
     case 401:
@@ -174,7 +185,7 @@ export const resolvers = {
         where: { id: userId },
         include: {
           shifts: {
-            orderBy: { clockIn: "desc" },
+            orderBy: { createdAt: "desc" },
           },
         },
       });
@@ -196,7 +207,13 @@ export const resolvers = {
 
     shifts: async (
       _: unknown,
-      { userId }: { userId: string },
+      {
+        userId,
+        dateRange,
+      }: {
+        userId: string;
+        dateRange?: { startDate: Date; endDate: Date };
+      },
       context: Context
     ) => {
       const { user: shiftUser } = context;
@@ -227,6 +244,28 @@ export const resolvers = {
           });
         }
 
+        if (dateRange) {
+          console.log("Date range:", typeof dateRange);
+          const { startDate, endDate } = dateRange;
+          console.log("Start date:", startDate);
+          console.log("End date:", endDate);
+          const shifts = await prisma.shift.findMany({
+            where: {
+              userId: currentUser.id,
+              createdAt: {
+                gte: startDate,
+                lte: endDate,
+              },
+            },
+            orderBy: { createdAt: "desc" },
+            include: { user: true },
+          });
+
+          return shifts;
+        }
+        const startDate = new Date();
+        const endDate = new Date();
+        endDate.setDate(startDate.getDate() - 7);
         const shifts = await prisma.shift.findMany({
           where: { userId: currentUser.id },
           orderBy: { createdAt: "desc" },
@@ -238,40 +277,38 @@ export const resolvers = {
 
       console.log("Current user is the one fetching shifts");
 
+      if (dateRange) {
+        const { startDate, endDate } = dateRange;
+        const shifts = await prisma.shift.findMany({
+          where: {
+            userId: userId,
+            createdAt: { gte: startDate, lte: endDate },
+          },
+          orderBy: { createdAt: "desc" },
+          include: { user: true },
+        });
+
+        return shifts;
+      }
+
+      const startDate = new Date();
+      const endDate = new Date();
+      endDate.setDate(startDate.getDate() - 7);
       const shifts = await prisma.shift.findMany({
-        where: { userId: userId },
+        where: { userId: userId, createdAt: { gte: startDate, lte: endDate } },
         orderBy: { createdAt: "desc" },
         include: { user: true },
       });
 
-      const testShifts = await prisma.shift.findFirst();
-
-      console.log("Shifts:", shifts);
-      console.log("Test Shifts:", testShifts);
-
       return shifts;
     },
 
-    shiftsToday: async (_: unknown, __: unknown, context: Context) => {
+    allShifts: async (
+      _: unknown,
+      { dateRange }: { dateRange: { startDate: Date; endDate: Date } },
+      context: Context
+    ) => {
       const { user: staffUser } = context;
-      const now = new Date();
-      const startOfDay = new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        now.getDate(),
-        0,
-        0,
-        0
-      );
-      console.log("Start of day:", startOfDay);
-      const endOfDay = new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        now.getDate(),
-        23,
-        59,
-        59
-      );
 
       if (!staffUser?.sub) {
         const error = errorResponse(401);
@@ -292,34 +329,168 @@ export const resolvers = {
         throw new GraphQLError(error.message, { extensions: error.extensions });
       }
 
+      if (dateRange) {
+        const { startDate, endDate } = dateRange;
+        const shifts = await prisma.shift.findMany({
+          where: {
+            user: {
+              role: "CARETAKER",
+            },
+            AND: [
+              {
+                clockIn: {
+                  gte: startDate,
+                },
+              },
+              {
+                clockOut: {
+                  lte: endDate,
+                },
+              },
+            ],
+          },
+          orderBy: { createdAt: "desc" },
+          include: { user: true },
+        });
+
+        return shifts;
+      }
+
+      const now = new Date();
+
+      // Set startDate to the beginning of today
+      const startDate = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+        0,
+        0,
+        0,
+        0
+      );
+
+      // Set endDate to the end of today
+      const endDate = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+        23,
+        59,
+        59,
+        999
+      );
+
       const shifts = await prisma.shift.findMany({
         where: {
           user: {
             role: "CARETAKER",
           },
-          AND: [
-            {
-              clockIn: {
-                gte: startOfDay,
-              },
-            },
-            {
-              clockOut: {
-                lte: endOfDay,
-              },
-            },
-          ],
+          clockIn: {
+            gte: startDate,
+            lte: endDate,
+          },
         },
+        orderBy: { createdAt: "desc" },
+        include: { user: true },
+      });
+      return shifts;
+    },
+
+    hoursPerDateRange: async (
+      _: unknown,
+      { dateRange }: { dateRange: { startDate: Date; endDate: Date } },
+      context: Context
+    ) => {
+      const { user: staffUser } = context;
+
+      if (!staffUser?.sub) {
+        const error = errorResponse(401);
+        throw new GraphQLError(error.message, { extensions: error.extensions });
+      }
+
+      const currentUser = await prisma.user.findUnique({
+        where: { auth0Id: staffUser.sub },
+      });
+
+      if (!currentUser) {
+        const error = errorResponse(404);
+        throw new GraphQLError(error.message, { extensions: error.extensions });
+      }
+
+      if (currentUser.role !== "MANAGER") {
+        const error = errorResponse(403);
+        throw new GraphQLError(error.message, { extensions: error.extensions });
+      }
+
+      const { startDate, endDate } = dateRange;
+      const shifts = await prisma.shift.findMany({
+        where: {
+          user: {
+            role: "CARETAKER",
+          },
+          clockOut: {
+            gte: startDate,
+            lte: endDate,
+            not: null,
+          },
+        },
+        orderBy: { createdAt: "desc" },
         include: { user: true },
       });
 
-      return shifts;
+      type UserDailyTotals = {
+        [userId: string]: {
+          userName: string;
+          dailyTotals: { [date: string]: number };
+        };
+      };
+
+      const userDailyTotals: UserDailyTotals = {};
+
+      shifts.forEach((shift) => {
+        if (shift.clockOut) {
+          const userId = shift.user.id;
+          const userName = shift.user.name;
+          const clockOutDate = new Date(shift.clockOut);
+          const dateKey = clockOutDate.toISOString().split("T")[0];
+
+          if (!userDailyTotals[userId]) {
+            userDailyTotals[userId] = {
+              userName,
+              dailyTotals: {},
+            };
+          }
+
+          if (!userDailyTotals[userId].dailyTotals[dateKey]) {
+            userDailyTotals[userId].dailyTotals[dateKey] = 0;
+          }
+
+          const clockInTime = new Date(shift.clockIn).getTime();
+          const clockOutTime = clockOutDate.getTime();
+          const hoursWorked = (clockOutTime - clockInTime) / (1000 * 60 * 60);
+          userDailyTotals[userId].dailyTotals[dateKey] += hoursWorked;
+        }
+      });
+
+      const result: UserDailyHours[] = Object.entries(userDailyTotals)
+        .filter(([, { dailyTotals }]) => Object.keys(dailyTotals).length > 0)
+        .map(([userId, { userName, dailyTotals }]) => ({
+          userId,
+          userName,
+          dailyTotals: Object.entries(dailyTotals).map(([date, hours]) => ({
+            date,
+            hours,
+          })),
+        }));
+
+      console.log("Result:", result); // Debugging line to check the result
+
+      return result;
     },
 
     hoursLast7Days: async (_: unknown, __: unknown, context: Context) => {
       const { user: staffUser } = context;
       const now = new Date();
-      // For last 7 days including today, subtract 6 days from today's date.
       const startDate = new Date(
         now.getFullYear(),
         now.getMonth(),

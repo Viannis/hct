@@ -31,7 +31,6 @@ const SettingsLayout: React.FC<SettingsLayoutProps> = ({ children }) => {
   const items = [
     { label: "My Info", key: "1" },
     { label: "Location", key: "location" },
-    { label: "Credentials", key: "credentials" },
   ];
 
   return (

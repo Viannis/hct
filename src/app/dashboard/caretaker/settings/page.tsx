@@ -97,6 +97,15 @@ export default function SettingsPage() {
 
   return (
     <div>
+      <h1 style={{ marginBottom: 28 }}>Settings</h1>
+      <div
+        style={{
+          width: "100%",
+          height: 1,
+          backgroundColor: "#f0f0f0",
+          marginBottom: 16,
+        }}
+      ></div>
       {isEditing ? (
         <div>
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>

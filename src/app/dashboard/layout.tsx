@@ -5,13 +5,14 @@ import {
   TeamOutlined,
   SettingOutlined,
   LogoutOutlined,
-  HistoryOutlined,
 } from "@ant-design/icons";
 import { usePathname, useRouter } from "next/navigation";
 import { Menu, Layout, Button, notification } from "antd";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import type { NotificationArgsProps } from "antd";
+import { UserLocationProvider } from "./manager/context/UserLocationContext";
+import LoadError from "./manager/components/LoadError";
 
 type NotificationPlacement = NotificationArgsProps["placement"];
 type NotificationType = "success" | "info" | "warning" | "error";
@@ -86,11 +87,6 @@ export default function DashboardLayout({
       key: "/dashboard/caretaker",
       icon: <HomeOutlined />,
       label: <Link href="/dashboard/caretaker">Home</Link>,
-    },
-    {
-      key: "/dashboard/caretaker/shifts",
-      icon: <HistoryOutlined />,
-      label: <Link href="/dashboard/caretaker/shifts">Shifts</Link>,
     },
     {
       key: "/dashboard/caretaker/settings",
@@ -172,7 +168,9 @@ export default function DashboardLayout({
           style={{ marginLeft: collapsed ? 79 : 200, background: "#fff" }}
         >
           <Content style={{ margin: "24px 16px", padding: 24 }}>
-            {children}
+            <UserLocationProvider>
+              <LoadError>{children}</LoadError>
+            </UserLocationProvider>
           </Content>
         </Layout>
       </Layout>

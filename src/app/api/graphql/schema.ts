@@ -44,6 +44,11 @@ const typeDefs = gql`
     hours: Float!
   }
 
+  type UserDailyHours {
+    userName: String!
+    dailyTotals: [DailyHours]
+  }
+
   type CareTaker {
     id: ID!
     name: String!
@@ -52,14 +57,20 @@ const typeDefs = gql`
     lastClockedOut: DateTime
   }
 
+  input DateRangeInput {
+    startDate: DateTime!
+    endDate: DateTime!
+  }
+
   type Query {
     user(userId: ID): User
     location: Location
     caretakers: [CareTaker!]
     caretakerShifts(userId: ID): User!
-    shifts(userId: ID): [Shift!]
-    shiftsToday: [Shift!]
+    shifts(userId: ID, dateRange: DateRangeInput): [Shift!]
+    allShifts(dateRange: DateRangeInput): [Shift!]
     hoursLast7Days: [DailyHours!]!
+    hoursPerDateRange(dateRange: DateRangeInput): [UserDailyHours!]!
   }
 
   input CreateUserInput {
