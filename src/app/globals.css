@@ -1,6 +1,7 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  font-size: 18px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -68,10 +69,23 @@ a {
   .menu-button {
     display: block;
   }
+
+  :root {
+    font-size: 14px;
+  }
 }
 
 @media (min-width: 992px) {
+  :root {
+    font-size: 14px;
+  }
   .menu-button {
     display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    font-size: 12px;
   }
 }
