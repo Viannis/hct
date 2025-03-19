@@ -27,7 +27,7 @@ export default function CareTakerPage() {
     email: "",
   });
   const { data, loading, error } = useQuery(GET_CARETAKER_SHIFTS, {
-    variables: { userId: caretakerId },
+    variables: { userId: caretakerId }, // Get the caretaker shifts from the database
   });
   const [isModalVisible, setIsModalVisible] = useState(false);
 
@@ -45,22 +45,22 @@ export default function CareTakerPage() {
   if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error.message}</div>;
 
-  const handleRowClick = (shift: Shift) => {
+  const handleRowClick = (shift: Shift) => { // Open the modal to view the shift details
     setSelectedShift(shift);
     setIsModalVisible(true);
   };
 
-  const handleModalClose = () => {
+  const handleModalClose = () => { // Close the modal
     setIsModalVisible(false);
     setSelectedShift(null);
   };
 
-  const formatText = (text: string) => {
+  const formatText = (text: string) => { // Format the text to be displayed in the table
     if (!text) return "-";
     return text.length > 20 ? `${text.substring(0, 20)}...` : text;
   };
 
-  const columns = [
+  const columns = [ // Columns for the table
     {
       title: "Date",
       dataIndex: "clockIn",
@@ -127,7 +127,7 @@ export default function CareTakerPage() {
         <h2>Shifts</h2>
       </div>
 
-      <Table
+      <Table // Table for the shifts
         columns={columns}
         dataSource={shifts}
         rowKey="id"
@@ -135,7 +135,7 @@ export default function CareTakerPage() {
           paddingTop: 36,
         }}
       />
-      <Modal
+      <Modal // Modal for the shift details
         title="Shift Details"
         open={isModalVisible}
         onCancel={handleModalClose}

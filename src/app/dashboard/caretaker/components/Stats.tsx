@@ -46,13 +46,14 @@ export default function Stats() {
         tension: 0.1,
       },
     ],
-  });
+  }); // Set state for the chart data
 
   useEffect(() => {
     if (!loading.hoursLast7Days && hoursLast7Days) {
       let tempTotalHours = 0;
       let tempAvgHours = 0;
       hoursLast7Days.forEach((hoursPerDay: HoursPerDay) => {
+        // Calculate the total and average hours worked
         tempTotalHours += hoursPerDay.hours || 0;
       });
       tempTotalHours = Math.round(tempTotalHours * 100) / 100;
@@ -62,6 +63,7 @@ export default function Stats() {
       const labels: string[] = [];
       const hours: number[] = [];
       hoursLast7Days.forEach((hoursPerDay: HoursPerDay) => {
+        // Set the labels and hours for the chart
         labels.push(hoursPerDay.date);
         hours.push(hoursPerDay.hours);
       });
@@ -96,7 +98,7 @@ export default function Stats() {
           </Col>
           <Col span={16}>
             <Card title="Hours Worked Last 7 Days" style={{ height: "100%" }}>
-              <Line
+              <Line // Line chart for the hours worked last 7 days
                 data={chartData}
                 options={{
                   maintainAspectRatio: false,

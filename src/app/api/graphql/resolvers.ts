@@ -30,6 +30,7 @@ type UserDailyHours = {
 };
 
 const errorResponse = (status: number): ErrorResponse => {
+  // Common error response for all queries and mutations
   switch (status) {
     case 401:
       return {
@@ -62,6 +63,7 @@ const errorResponse = (status: number): ErrorResponse => {
 export const resolvers = {
   Query: {
     user: async (
+      // Get the user by ID
       _: unknown,
       { userId }: { userId: string },
       context: Context
@@ -69,22 +71,27 @@ export const resolvers = {
       const { user } = context;
 
       if (!user?.sub) {
-        const error = errorResponse(401);
-        throw new GraphQLError(error.message, { extensions: error.extensions });
+        // Check if the user is authenticated
+        const error = errorResponse(401); // Return the error response
+        throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
 
       const currentUser = await prisma.user.findUnique({
+        // Get the user by ID
         where: { auth0Id: user.sub },
       });
 
       if (!currentUser) {
-        const error = errorResponse(404);
-        throw new GraphQLError(error.message, { extensions: error.extensions });
+        // Check if the user is found
+        const error = errorResponse(404); // Return the error response
+        throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
 
       if (currentUser.role !== "MANAGER") {
+        // Check if the user is a manager
         if (userId !== user.sub) {
-          const error = errorResponse(403);
+          // Check if the user is the same as the one fetching the user
+          const error = errorResponse(403); // Return the error response
           throw new GraphQLError(error.message, {
             extensions: error.extensions,
           });
@@ -92,6 +99,7 @@ export const resolvers = {
       }
 
       const userRecord = await prisma.user.findUnique({
+        // Get the user by ID
         where: {
           auth0Id: user.sub,
         },
@@ -101,41 +109,49 @@ export const resolvers = {
     },
 
     location: async (_: unknown, __: unknown, context: Context) => {
+      // Get the location
       const { user } = context;
 
       if (!user?.sub) {
-        const error = errorResponse(401);
-        throw new GraphQLError(error.message, { extensions: error.extensions });
+        // Check if the user is authenticated
+        const error = errorResponse(401); // Return the error response
+        throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
 
-      const location = await prisma.location.findFirst();
+      const location = await prisma.location.findFirst(); // Get the location
 
       return location;
     },
 
     caretakers: async (_: unknown, __: unknown, context: Context) => {
+      // Get the caretakers
       const { user: staffUser } = context;
 
       if (!staffUser?.sub) {
-        const error = errorResponse(401);
-        throw new GraphQLError(error.message, { extensions: error.extensions });
+        // Check if the user is authenticated
+        const error = errorResponse(401); // Return the error response
+        throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
 
       const currentUser = await prisma.user.findUnique({
+        // Get the user by ID
         where: { auth0Id: staffUser.sub },
       });
 
       if (!currentUser) {
-        const error = errorResponse(404);
-        throw new GraphQLError(error.message, { extensions: error.extensions });
+        // Check if the user is found
+        const error = errorResponse(404); // Return the error response
+        throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
 
       if (currentUser.role !== "MANAGER") {
-        const error = errorResponse(403);
-        throw new GraphQLError(error.message, { extensions: error.extensions });
+        // Check if the user is a manager
+        const error = errorResponse(403); // Return the error response
+        throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
 
       const caretakers = await prisma.user.findMany({
+        // Get the caretakers
         where: { role: "CARETAKER" },
         include: {
           shifts: {
@@ -146,6 +162,7 @@ export const resolvers = {
       });
 
       return caretakers.map((caretaker) => ({
+        // Map the caretakers
         id: caretaker.id,
         name: caretaker.name,
         email: caretaker.email,
@@ -155,6 +172,7 @@ export const resolvers = {
     },
 
     caretakerShifts: async (
+      // Get the caretaker shifts
       _: unknown,
       { userId }: { userId: string },
       context: Context
@@ -163,25 +181,30 @@ export const resolvers = {
       const { user: staffUser } = context;
 
       if (!staffUser?.sub) {
-        const error = errorResponse(401);
-        throw new GraphQLError(error.message, { extensions: error.extensions });
+        // Check if the user is authenticated
+        const error = errorResponse(401); // Return the error response
+        throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
 
       const currentUser = await prisma.user.findUnique({
+        // Get the user by ID
         where: { auth0Id: staffUser.sub },
       });
 
       if (!currentUser) {
-        const error = errorResponse(404);
-        throw new GraphQLError(error.message, { extensions: error.extensions });
+        // Check if the user is found
+        const error = errorResponse(404); // Return the error response
+        throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
 
       if (currentUser.role !== "MANAGER") {
-        const error = errorResponse(403);
-        throw new GraphQLError(error.message, { extensions: error.extensions });
+        // Check if the user is a manager
+        const error = errorResponse(403); // Return the error response
+        throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
 
       const caretakerShifts = await prisma.user.findUnique({
+        // Get the caretaker shifts
         where: { id: userId },
         include: {
           shifts: {
@@ -191,11 +214,12 @@ export const resolvers = {
       });
 
       if (!caretakerShifts) {
-        const error = errorResponse(404);
-        throw new GraphQLError(error.message, { extensions: error.extensions });
+        // Check if the caretaker shifts are found
+        const error = errorResponse(404); // Return the error response
+        throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
 
-      console.log("Caretaker shifts:", caretakerShifts);
+      console.log("Caretaker shifts:", caretakerShifts); // Log the caretaker shifts
 
       return {
         id: caretakerShifts.id,
@@ -206,6 +230,7 @@ export const resolvers = {
     },
 
     shifts: async (
+      // Get the shifts by user ID and date range
       _: unknown,
       {
         userId,
@@ -220,36 +245,43 @@ export const resolvers = {
       console.log("Shifts query called");
 
       if (!shiftUser?.sub) {
-        const error = errorResponse(401);
-        throw new GraphQLError(error.message, { extensions: error.extensions });
+        // Check if the user is authenticated
+        const error = errorResponse(401); // Return the error response
+        throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
 
       console.log("Input User ID:", userId, "Session user ID:", shiftUser?.sub);
 
       const currentUser = await prisma.user.findUnique({
+        // Get the user by ID
         where: { auth0Id: shiftUser.sub },
       });
 
       if (!currentUser) {
-        const error = errorResponse(404);
-        throw new GraphQLError(error.message, { extensions: error.extensions });
+        // Check if the user is found
+        const error = errorResponse(404); // Return the error response
+        throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
 
       if (currentUser.role !== "MANAGER") {
+        // Check if the user is a manager
         if (userId !== shiftUser.sub) {
+          // Check if the user is the same as the one fetching the shifts
           console.log("Current user is not the one fetching shifts");
-          const error = errorResponse(403);
+          const error = errorResponse(403); // Return the error response
           throw new GraphQLError(error.message, {
             extensions: error.extensions,
           });
         }
 
         if (dateRange) {
-          console.log("Date range:", typeof dateRange);
-          const { startDate, endDate } = dateRange;
-          console.log("Start date:", startDate);
-          console.log("End date:", endDate);
+          // Check if the date range is provided
+          console.log("Date range:", typeof dateRange); // Log the date range
+          const { startDate, endDate } = dateRange; // Destructure the date range
+          console.log("Start date:", startDate); // Log the start date
+          console.log("End date:", endDate); // Log the end date
           const shifts = await prisma.shift.findMany({
+            // Get the shifts
             where: {
               userId: currentUser.id,
               createdAt: {
@@ -263,10 +295,11 @@ export const resolvers = {
 
           return shifts;
         }
-        const startDate = new Date();
-        const endDate = new Date();
-        endDate.setDate(startDate.getDate() - 7);
+        const startDate = new Date(); // Set the start date
+        const endDate = new Date(); // Set the end date
+        endDate.setDate(startDate.getDate() - 7); // Set the end date to 7 days ago
         const shifts = await prisma.shift.findMany({
+          // Get the shifts
           where: { userId: currentUser.id },
           orderBy: { createdAt: "desc" },
           include: { user: true },
@@ -275,11 +308,13 @@ export const resolvers = {
         return shifts;
       }
 
-      console.log("Current user is the one fetching shifts");
+      console.log("Current user is the one fetching shifts"); // Log the current user is the one fetching shifts
 
       if (dateRange) {
-        const { startDate, endDate } = dateRange;
+        // Check if the date range is provided
+        const { startDate, endDate } = dateRange; // Destructure the date range
         const shifts = await prisma.shift.findMany({
+          // Get the shifts
           where: {
             userId: userId,
             createdAt: { gte: startDate, lte: endDate },
@@ -291,10 +326,11 @@ export const resolvers = {
         return shifts;
       }
 
-      const startDate = new Date();
-      const endDate = new Date();
-      endDate.setDate(startDate.getDate() - 7);
+      const startDate = new Date(); // Set the start date
+      const endDate = new Date(); // Set the end date
+      endDate.setDate(startDate.getDate() - 7); // Set the end date to 7 days ago
       const shifts = await prisma.shift.findMany({
+        // Get the shifts
         where: { userId: userId, createdAt: { gte: startDate, lte: endDate } },
         orderBy: { createdAt: "desc" },
         include: { user: true },
@@ -304,6 +340,7 @@ export const resolvers = {
     },
 
     allShifts: async (
+      // Get all shifts by date range
       _: unknown,
       { dateRange }: { dateRange: { startDate: Date; endDate: Date } },
       context: Context
@@ -311,27 +348,33 @@ export const resolvers = {
       const { user: staffUser } = context;
 
       if (!staffUser?.sub) {
-        const error = errorResponse(401);
-        throw new GraphQLError(error.message, { extensions: error.extensions });
+        // Check if the user is authenticated
+        const error = errorResponse(401); // Return the error response
+        throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
 
       const currentUser = await prisma.user.findUnique({
+        // Get the user by ID
         where: { auth0Id: staffUser.sub },
       });
 
       if (!currentUser) {
-        const error = errorResponse(404);
-        throw new GraphQLError(error.message, { extensions: error.extensions });
+        // Check if the user is found
+        const error = errorResponse(404); // Return the error response
+        throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
 
       if (currentUser.role !== "MANAGER") {
-        const error = errorResponse(403);
-        throw new GraphQLError(error.message, { extensions: error.extensions });
+        // Check if the user is a manager
+        const error = errorResponse(403); // Return the error response
+        throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
 
       if (dateRange) {
-        const { startDate, endDate } = dateRange;
+        // Check if the date range is provided
+        const { startDate, endDate } = dateRange; // Destructure the date range
         const shifts = await prisma.shift.findMany({
+          // Get the shifts
           where: {
             user: {
               role: "CARETAKER",
@@ -339,24 +382,24 @@ export const resolvers = {
             AND: [
               {
                 clockIn: {
-                  gte: startDate,
+                  gte: startDate, // Check if the clock in date is greater than or equal to the start date
                 },
               },
               {
                 clockOut: {
-                  lte: endDate,
+                  lte: endDate, // Check if the clock out date is less than or equal to the end date
                 },
               },
             ],
           },
-          orderBy: { createdAt: "desc" },
-          include: { user: true },
+          orderBy: { createdAt: "desc" }, // Order the shifts by the created at date
+          include: { user: true }, // Include the user in the shifts
         });
 
         return shifts;
       }
 
-      const now = new Date();
+      const now = new Date(); // Set the current date
 
       // Set startDate to the beginning of today
       const startDate = new Date(
@@ -381,6 +424,7 @@ export const resolvers = {
       );
 
       const shifts = await prisma.shift.findMany({
+        // Get the shifts
         where: {
           user: {
             role: "CARETAKER",
@@ -397,6 +441,7 @@ export const resolvers = {
     },
 
     hoursPerDateRange: async (
+      // Get the hours per date range
       _: unknown,
       { dateRange }: { dateRange: { startDate: Date; endDate: Date } },
       context: Context
@@ -404,57 +449,65 @@ export const resolvers = {
       const { user: staffUser } = context;
 
       if (!staffUser?.sub) {
-        const error = errorResponse(401);
-        throw new GraphQLError(error.message, { extensions: error.extensions });
+        // Check if the user is authenticated
+        const error = errorResponse(401); // Return the error response
+        throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
 
       const currentUser = await prisma.user.findUnique({
+        // Get the user by ID
         where: { auth0Id: staffUser.sub },
       });
 
       if (!currentUser) {
-        const error = errorResponse(404);
-        throw new GraphQLError(error.message, { extensions: error.extensions });
+        // Check if the user is found
+        const error = errorResponse(404); // Return the error response
+        throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
 
       if (currentUser.role !== "MANAGER") {
-        const error = errorResponse(403);
-        throw new GraphQLError(error.message, { extensions: error.extensions });
+        // Check if the user is a manager
+        const error = errorResponse(403); // Return the error response
+        throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
 
-      const { startDate, endDate } = dateRange;
+      const { startDate, endDate } = dateRange; // Destructure the date range
       const shifts = await prisma.shift.findMany({
+        // Get the shifts
         where: {
           user: {
             role: "CARETAKER",
           },
           clockOut: {
-            gte: startDate,
-            lte: endDate,
-            not: null,
+            gte: startDate, // Check if the clock out date is greater than or equal to the start date
+            lte: endDate, // Check if the clock out date is less than or equal to the end date
+            not: null, // Check if the clock out date is not null
           },
         },
-        orderBy: { createdAt: "desc" },
-        include: { user: true },
+        orderBy: { createdAt: "desc" }, // Order the shifts by the created at date
+        include: { user: true }, // Include the user in the shifts
       });
 
       type UserDailyTotals = {
+        // Define the type for the user daily totals
         [userId: string]: {
           userName: string;
           dailyTotals: { [date: string]: number };
         };
       };
 
-      const userDailyTotals: UserDailyTotals = {};
+      const userDailyTotals: UserDailyTotals = {}; // Initialize the user daily totals
 
       shifts.forEach((shift) => {
         if (shift.clockOut) {
-          const userId = shift.user.id;
-          const userName = shift.user.name;
-          const clockOutDate = new Date(shift.clockOut);
-          const dateKey = clockOutDate.toISOString().split("T")[0];
+          // Check if the clock out date is not null
+          const userId = shift.user.id; // Get the user ID
+          const userName = shift.user.name; // Get the user name
+          const clockOutDate = new Date(shift.clockOut); // Get the clock out date
+          const dateKey = clockOutDate.toISOString().split("T")[0]; // Get the date key
 
           if (!userDailyTotals[userId]) {
+            // Check if the user daily totals are not found
             userDailyTotals[userId] = {
               userName,
               dailyTotals: {},
@@ -462,33 +515,37 @@ export const resolvers = {
           }
 
           if (!userDailyTotals[userId].dailyTotals[dateKey]) {
-            userDailyTotals[userId].dailyTotals[dateKey] = 0;
+            // Check if the date key is not found
+            userDailyTotals[userId].dailyTotals[dateKey] = 0; // Set the date key to 0
           }
 
-          const clockInTime = new Date(shift.clockIn).getTime();
-          const clockOutTime = clockOutDate.getTime();
-          const hoursWorked = (clockOutTime - clockInTime) / (1000 * 60 * 60);
-          userDailyTotals[userId].dailyTotals[dateKey] += hoursWorked;
+          const clockInTime = new Date(shift.clockIn).getTime(); // Get the clock in time
+          const clockOutTime = clockOutDate.getTime(); // Get the clock out time
+          const hoursWorked = (clockOutTime - clockInTime) / (1000 * 60 * 60); // Get the hours worked
+          userDailyTotals[userId].dailyTotals[dateKey] += hoursWorked; // Add the hours worked to the date key
         }
       });
 
-      const result: UserDailyHours[] = Object.entries(userDailyTotals)
-        .filter(([, { dailyTotals }]) => Object.keys(dailyTotals).length > 0)
+      const result: UserDailyHours[] = Object.entries(userDailyTotals) // Get the result
+        .filter(([, { dailyTotals }]) => Object.keys(dailyTotals).length > 0) // Check if the daily totals are not empty
         .map(([userId, { userName, dailyTotals }]) => ({
-          userId,
-          userName,
+          // Map the user daily totals
+          userId, // Get the user ID
+          userName, // Get the user name
           dailyTotals: Object.entries(dailyTotals).map(([date, hours]) => ({
-            date,
-            hours,
+            // Map the daily totals
+            date, // Get the date
+            hours, // Get the hours
           })),
         }));
 
-      console.log("Result:", result); // Debugging line to check the result
+      console.log("Result:", result); // Log the result
 
       return result;
     },
 
     hoursLast7Days: async (_: unknown, __: unknown, context: Context) => {
+      // Get the hours last 7 days
       const { user: staffUser } = context;
       const now = new Date();
       const startDate = new Date(
@@ -498,32 +555,36 @@ export const resolvers = {
       );
       console.log("Start date:", startDate);
       if (!staffUser?.sub) {
-        const error = errorResponse(401);
-        throw new GraphQLError(error.message, { extensions: error.extensions });
+        // Check if the user is authenticated
+        const error = errorResponse(401); // Return the error response
+        throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
 
       const currentUser = await prisma.user.findUnique({
+        // Get the user by ID
         where: { auth0Id: staffUser.sub },
       });
 
       if (!currentUser) {
-        const error = errorResponse(404);
-        throw new GraphQLError(error.message, { extensions: error.extensions });
+        // Check if the user is found
+        const error = errorResponse(404); // Return the error response
+        throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
 
-      // Fetch shifts for the user where clockOut is not null and occurred on or after startDate
       const shifts = await prisma.shift.findMany({
+        // Get the shifts
         where: {
           userId: currentUser.id,
           clockOut: {
-            gte: startDate,
+            gte: startDate, // Check if the clock out date is greater than or equal to the start date
             not: null,
           },
         },
       });
 
       type DailyTotals = {
-        [key: string]: number;
+        // Define the type for the daily totals
+        [key: string]: number; // The key is the date string (YYYY-MM-DD)
       };
 
       // Create an object to hold totals keyed by date string (YYYY-MM-DD)
@@ -542,18 +603,20 @@ export const resolvers = {
       // For each shift, compute the duration (in hours) and assign it to the day of clockOut
       shifts.forEach((shift) => {
         if (shift.clockOut) {
-          const clockOutDate = new Date(shift.clockOut);
+          // Check if the clock out date is not null
+          const clockOutDate = new Date(shift.clockOut); // Get the clock out date
           const dateKey = clockOutDate
             .toISOString()
             .split("T")[0]
             .split("-")[2];
           console.log("Date key:", dateKey);
           if (dailyTotals.hasOwnProperty(dateKey)) {
+            // Check if the date key is in the daily totals
             console.log("Shift:", shift);
-            const clockInTime = new Date(shift.clockIn).getTime();
-            const clockOutTime = clockOutDate.getTime();
-            const hoursWorked = (clockOutTime - clockInTime) / (1000 * 60 * 60);
-            console.log(dailyTotals[dateKey]);
+            const clockInTime = new Date(shift.clockIn).getTime(); // Get the clock in time
+            const clockOutTime = clockOutDate.getTime(); // Get the clock out time
+            const hoursWorked = (clockOutTime - clockInTime) / (1000 * 60 * 60); // Get the hours worked
+            console.log(dailyTotals[dateKey]); // Log the daily totals
             dailyTotals[dateKey] += hoursWorked;
           }
         }
@@ -564,12 +627,14 @@ export const resolvers = {
       // Convert the dailyTotals object into an array of 7 floats in ascending order (from oldest to today)
       const result = [];
       for (let i = 0; i < 7; i++) {
-        const day = new Date(startDate);
-        console.log("Start date:", startDate);
-        day.setDate(startDate.getDate() + i - 1);
-        const dateKey = String(day.getDate());
-        console.log("Date key:", dateKey);
+        // Loop through the 7 days and update each day with the hours worked
+        const day = new Date(startDate); // Get the start date
+        console.log("Start date:", startDate); // Log the start date
+        day.setDate(startDate.getDate() + i - 1); // Set the date to the day of the week
+        const dateKey = String(day.getDate()); // Get the date key
+        console.log("Date key:", dateKey); // Log the date key
         result.push({
+          // Add the date and hours to the result
           date: dateKey,
           hours: dailyTotals[dateKey] || 0,
         });
@@ -581,69 +646,76 @@ export const resolvers = {
 
   Mutation: {
     createUser: async (
+      // Create a new user
       _: unknown,
       {
         input,
       }: {
         input: {
-          email: string;
-          name: string;
-          role: string;
-          auth0Id: string;
+          // The input is the user data
+          email: string; // The email of the user
+          name: string; // The name of the user
+          role: string; // The role of the user
+          auth0Id: string; // The Auth0 ID of the user
         };
       },
       context: Context
     ) => {
-      const { user } = context;
+      const { user } = context; // Get the user from the context
 
       if (!user?.sub) {
-        const error = errorResponse(401);
-        throw new GraphQLError(error.message, { extensions: error.extensions });
+        const error = errorResponse(401); // Return the error response
+        throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
 
       if (input.auth0Id !== user.sub) {
-        const error = errorResponse(403);
-        throw new GraphQLError(error.message, { extensions: error.extensions });
+        const error = errorResponse(403); // Return the error response
+        throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
 
       const userRecord = await prisma.user.findUnique({
+        // Get the user by ID
         where: {
           auth0Id: user.sub,
         },
       });
 
       if (userRecord) {
-        return userRecord;
+        // Check if the user is found
+        return userRecord; // Return the user
       }
 
       const newUser = await prisma.user.create({
+        // Create a new user
         data: {
-          email: input.email,
-          name: input.name,
-          role: input.role as UserRole,
-          auth0Id: user.sub as string,
+          email: input.email, // The email of the user
+          name: input.name, // The name of the user
+          role: input.role as UserRole, // The role of the user
+          auth0Id: user.sub as string, // The Auth0 ID of the user
         },
       });
 
-      return newUser;
+      return newUser; // Return the new user
     },
 
     updateUserProfile: async (
+      // Update the user profile
       _: unknown,
       {
         input,
       }: {
         input: {
-          name: string;
+          // The input is the user data
+          name: string; // The name of the user
         };
       },
       context: Context
     ) => {
-      const { user } = context;
+      const { user } = context; // Get the user from the context
 
       if (!user?.sub) {
-        const error = errorResponse(401);
-        throw new GraphQLError(error.message, { extensions: error.extensions });
+        const error = errorResponse(401); // Return the error response
+        throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
 
       const userRecord = await prisma.user.findUnique({
@@ -653,41 +725,44 @@ export const resolvers = {
       });
 
       if (!userRecord) {
-        const error = errorResponse(404);
-        throw new GraphQLError(error.message, { extensions: error.extensions });
+        const error = errorResponse(404); // Return the error response
+        throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
 
       const updatedUser = await prisma.user.update({
+        // Update the user
         where: {
           auth0Id: user.sub,
         },
         data: {
-          name: input.name,
+          name: input.name, // The name of the user
         },
       });
 
-      return updatedUser;
+      return updatedUser; // Return the updated user
     },
 
     createLocation: async (
+      // Create a new location
       _: unknown,
       {
         input,
       }: {
         input: {
-          name: string;
-          latitude: number;
-          longitude: number;
-          radius: number;
+          // The input is the location data
+          name: string; // The name of the location
+          latitude: number; // The latitude of the location
+          longitude: number; // The longitude of the location
+          radius: number; // The radius of the location
         };
       },
       context: Context
     ) => {
-      const { user } = context;
+      const { user } = context; // Get the user from the context
 
       if (!user?.sub) {
-        const error = errorResponse(401);
-        throw new GraphQLError(error.message, { extensions: error.extensions });
+        const error = errorResponse(401); // Return the error response
+        throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
 
       const userRecord = await prisma.user.findUnique({
@@ -697,13 +772,13 @@ export const resolvers = {
       });
 
       if (!userRecord) {
-        const error = errorResponse(404);
-        throw new GraphQLError(error.message, { extensions: error.extensions });
+        const error = errorResponse(404); // Return the error response
+        throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
 
       if (userRecord.role !== "MANAGER") {
-        const error = errorResponse(403);
-        throw new GraphQLError(error.message, { extensions: error.extensions });
+        const error = errorResponse(403); // Return the error response
+        throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
 
       // Check if a location already exists
@@ -714,41 +789,43 @@ export const resolvers = {
       });
 
       if (existingLocation) {
-        const error = errorResponse(409);
-        throw new GraphQLError(error.message, { extensions: error.extensions });
+        const error = errorResponse(409); // Return the error response
+        throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
 
       const location = await prisma.location.create({
         data: {
-          name: input.name,
-          latitude: input.latitude,
-          longitude: input.longitude,
-          radius: input.radius,
+          name: input.name, // The name of the location
+          latitude: input.latitude, // The latitude of the location
+          longitude: input.longitude, // The longitude of the location
+          radius: input.radius, // The radius of the location
         },
       });
 
-      return location;
+      return location; // Return the location
     },
 
     updateLocation: async (
+      // Update the location
       _: unknown,
       {
         input,
       }: {
         input: {
-          name: string;
-          latitude: number;
-          longitude: number;
-          radius: number;
+          // The input is the location data
+          name: string; // The name of the location
+          latitude: number; // The latitude of the location
+          longitude: number; // The longitude of the location
+          radius: number; // The radius of the location
         };
       },
       context: Context
     ) => {
-      const { user } = context;
+      const { user } = context; // Get the user from the context
 
       if (!user?.sub) {
-        const error = errorResponse(401);
-        throw new GraphQLError(error.message, { extensions: error.extensions });
+        const error = errorResponse(401); // Return the error response
+        throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
 
       const userRecord = await prisma.user.findUnique({
@@ -758,13 +835,13 @@ export const resolvers = {
       });
 
       if (!userRecord) {
-        const error = errorResponse(404);
-        throw new GraphQLError(error.message, { extensions: error.extensions });
+        const error = errorResponse(404); // Return the error response
+        throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
 
       if (userRecord.role !== "MANAGER") {
-        const error = errorResponse(403);
-        throw new GraphQLError(error.message, { extensions: error.extensions });
+        const error = errorResponse(403); // Return the error response
+        throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
 
       // Check if a location already exists
@@ -776,48 +853,52 @@ export const resolvers = {
 
       if (!existingLocation) {
         const location = await prisma.location.create({
+          // Create a new location
           data: {
-            name: input.name,
-            latitude: input.latitude,
-            longitude: input.longitude,
-            radius: input.radius,
+            name: input.name, // The name of the location
+            latitude: input.latitude, // The latitude of the location
+            longitude: input.longitude, // The longitude of the location
+            radius: input.radius, // The radius of the location
           },
         });
 
-        return location;
+        return location; // Return the location
       }
 
       const location = await prisma.location.update({
+        // Update the location
         where: {
           id: existingLocation.id,
         },
         data: {
-          name: input.name,
-          latitude: input.latitude,
-          longitude: input.longitude,
-          radius: input.radius,
+          name: input.name, // The name of the location
+          latitude: input.latitude, // The latitude of the location
+          longitude: input.longitude, // The longitude of the location
+          radius: input.radius, // The radius of the location
         },
       });
 
-      return location;
+      return location; // Return the location
     },
 
     clockIn: async (
+      // Clock in
       _: unknown,
       {
         input,
       }: {
         input: {
-          note: string;
+          // The input is the clock in data
+          note: string; // The note of the clock in
         };
       },
       context: Context
     ) => {
-      const { user } = context;
+      const { user } = context; // Get the user from the context
 
       if (!user?.sub) {
-        const error = errorResponse(401);
-        throw new GraphQLError(error.message, { extensions: error.extensions });
+        const error = errorResponse(401); // Return the error response
+        throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
 
       const userRecord = await prisma.user.findUnique({
@@ -827,13 +908,13 @@ export const resolvers = {
       });
 
       if (!userRecord) {
-        const error = errorResponse(404);
-        throw new GraphQLError(error.message, { extensions: error.extensions });
+        const error = errorResponse(404); // Return the error response
+        throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
 
       if (userRecord.role === "MANAGER") {
-        const error = errorResponse(403);
-        throw new GraphQLError(error.message, { extensions: error.extensions });
+        const error = errorResponse(403); // Return the error response
+        throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
 
       const location = await prisma.location.findUnique({
@@ -843,8 +924,8 @@ export const resolvers = {
       });
 
       if (!location) {
-        const error = errorResponse(403);
-        throw new GraphQLError(error.message, { extensions: error.extensions });
+        const error = errorResponse(403); // Return the error response
+        throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
 
       const existingShift = await prisma.shift.findFirst({
@@ -855,14 +936,15 @@ export const resolvers = {
       });
 
       if (existingShift) {
-        const error = errorResponse(409);
-        throw new GraphQLError(error.message, { extensions: error.extensions });
+        const error = errorResponse(409); // Return the error response
+        throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
 
       const newShift = await prisma.shift.create({
+        // Create a new shift
         data: {
-          clockIn: new Date(),
-          clockInNote: input.note,
+          clockIn: new Date(), // The clock in date
+          clockInNote: input.note, // The note of the clock in
           user: {
             connect: {
               id: userRecord.id,
@@ -874,23 +956,25 @@ export const resolvers = {
         },
       });
 
-      return newShift;
+      return newShift; // Return the new shift
     },
 
     clockOut: async (
+      // Clock out
       _: unknown,
       {
         input,
       }: {
-        input: { id: string; note: string };
+        input: { id: string; note: string }; // The input is the clock out data
       },
       context: Context
     ) => {
       console.log("Clock out mutation called", input);
       const { user } = context;
       if (!user?.sub) {
-        const error = errorResponse(401);
-        throw new GraphQLError(error.message, { extensions: error.extensions });
+        // Check if the user is authenticated
+        const error = errorResponse(401); // Return the error response
+        throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
 
       const userRecord = await prisma.user.findUnique({
@@ -900,13 +984,13 @@ export const resolvers = {
       });
 
       if (!userRecord) {
-        const error = errorResponse(404);
-        throw new GraphQLError(error.message, { extensions: error.extensions });
+        const error = errorResponse(404); // Return the error response
+        throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
 
       if (userRecord.role === "MANAGER") {
-        const error = errorResponse(403);
-        throw new GraphQLError(error.message, { extensions: error.extensions });
+        const error = errorResponse(403); // Return the error response
+        throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
 
       const location = await prisma.location.findUnique({
@@ -916,13 +1000,14 @@ export const resolvers = {
       });
 
       if (!location) {
-        const error = errorResponse(403);
-        throw new GraphQLError(error.message, { extensions: error.extensions });
+        const error = errorResponse(403); // Return the error response
+        throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
 
       console.log("Input ID:", input.id);
 
       const existingShift = await prisma.shift.findFirst({
+        // Find the existing shift
         where: {
           id: input.id,
         },
@@ -937,23 +1022,25 @@ export const resolvers = {
       }
 
       if (existingShift.clockOut) {
-        return existingShift;
+        // Check if the shift has already been clocked out
+        return existingShift; // Return the existing shift
       }
 
       const updatedShift = await prisma.shift.update({
+        // Update the shift
         where: {
           id: input.id,
         },
         data: {
-          clockOut: new Date(),
-          clockOutNote: input.note,
+          clockOut: new Date(), // The clock out date
+          clockOutNote: input.note, // The note of the clock out
         },
         include: {
           user: true,
         },
       });
 
-      return updatedShift;
+      return updatedShift; // Return the updated shift
     },
   },
 };

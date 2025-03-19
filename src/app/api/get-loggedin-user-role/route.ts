@@ -17,8 +17,9 @@ type UserRole = {
 };
 
 async function fetchManagementAPIAccessToken(): Promise<string | null> {
+  // Fetch the management API access token from Auth0
   try {
-    return await getManagementAPIAccessToken();
+    return await getManagementAPIAccessToken(); // Get the management API access token from Auth0
   } catch (error) {
     console.error("Error fetching management API access token:", error);
     return null;
@@ -29,8 +30,9 @@ async function fetchUserRoles(
   userId: string,
   accessToken: string
 ): Promise<UserRole[] | null> {
+  // Fetch the user roles from Auth0
   try {
-    const { userRoles } = await getUserRolesFromAuth0({ userId, accessToken });
+    const { userRoles } = await getUserRolesFromAuth0({ userId, accessToken }); // Get the user roles from Auth0
     if (!userRoles) {
       return null;
     }
@@ -49,6 +51,7 @@ async function updateSessionWithRole(
 ) {
   try {
     await updateSession(req, res, {
+      // Update the session with the role
       ...session,
       user: { ...session.user, role },
     });
@@ -78,12 +81,14 @@ async function handleUserRoleUpdate({
         role.name.toLowerCase() === userData.role.toLowerCase()
     );
     if (roleToUpdate) {
+      // Check if the role to update is found
       await updateUserRoleInAuth0({
+        // Update the user's role in Auth0
         role: roleToUpdate,
         accessToken: managementAPIAccessToken,
         userId: session.user.sub,
       });
-      await updateSessionWithRole(req, res, session, userData.role);
+      await updateSessionWithRole(req, res, session, userData.role); // Update the session with the role
       return { role: userData.role, status: 200 };
     } else {
       console.error("Role to update not found");
@@ -100,21 +105,24 @@ async function handleUserRoleUpdate({
 
 export async function GET(req: NextRequest) {
   const res = NextResponse.next();
-  const session = await getSession(req, res);
+  const session = await getSession(req, res); // Get the session
 
   if (!session) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    // Check if the session is found
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 }); // Return unauthorized if the session is not found
   }
 
-  const idToken = session.idToken;
+  const idToken = session.idToken; // Get the id token of the user from app session (Auth0)
   if (!idToken) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    // Check if the id token is found
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 }); // Return unauthorized if the id token is not found
   }
 
-  const apolloClient = initializeApolloClient(idToken);
+  const apolloClient = initializeApolloClient(idToken); // Initialize the Apollo client
 
-  const managementAPIAccessToken = await fetchManagementAPIAccessToken();
+  const managementAPIAccessToken = await fetchManagementAPIAccessToken(); // Fetch the management API access token from Auth0
   if (!managementAPIAccessToken) {
+    // Check if the management API access token is found
     return NextResponse.json(
       { message: "Error fetching management API access token" },
       { status: 500 }
@@ -122,30 +130,35 @@ export async function GET(req: NextRequest) {
   }
 
   const { userFromDB: userData, error } = await getUserFromDb({
-    apolloClient: apolloClient,
-    userAuth0Id: session.user.sub,
+    // Get the user from the database
+    apolloClient: apolloClient, // Apollo client
+    userAuth0Id: session.user.sub, // User's Auth0 ID
   });
 
-  console.log("User data from DB: in loggedin route", userData);
-  console.log("Error from DB: in loggedin route", error);
+  console.log("User data from DB: in loggedin route", userData); // Log the user data from the database
+  console.log("Error from DB: in loggedin route", error); // Log the error from the database
 
   if (error) {
-    console.error("Error fetching user from DB:", error);
-    return NextResponse.json({ role: null }, { status: 200 });
+    // Check if the error is found
+    console.error("Error fetching user from DB:", error); // Log the error from the database
+    return NextResponse.json({ role: null }, { status: 200 }); // Return the role as null
   }
 
   if (!userData) {
-    console.error("User not found in DB");
-    return NextResponse.json({ role: null }, { status: 200 });
+    // Check if the user is found in the database
+    console.error("User not found in DB"); // Log the error from the database
+    return NextResponse.json({ role: null }, { status: 200 }); // Return the role as null
   }
 
-  console.log("User data from DB: in loggedin route", userData);
+  console.log("User data from DB: in loggedin route", userData); // Log the user data from the database
   const { authRoles, error: authRoleError } = await getAuthRoles(
-    managementAPIAccessToken
+    // Get the auth roles from Auth0
+    managementAPIAccessToken // Management API access token
   );
 
   if (!authRoles || authRoleError) {
-    console.error("Error fetching auth roles from Auth0:", error);
+    // Check if the auth roles are found
+    console.error("Error fetching auth roles from Auth0:", error); // Log the error from the database
     return NextResponse.json(
       { message: "Error fetching auth roles" },
       { status: 500 }
@@ -153,12 +166,15 @@ export async function GET(req: NextRequest) {
   }
 
   const userRoles = await fetchUserRoles(
-    session.user.sub,
-    managementAPIAccessToken
+    // Fetch the user roles from Auth0
+    session.user.sub, // User's Auth0 ID
+    managementAPIAccessToken // Management API access token
   );
 
   if (!userRoles) {
+    // Check if the user roles are found
     const roleUpdateResponse = await handleUserRoleUpdate({
+      // Update the user's role in Auth0
       req,
       res,
       session,
@@ -168,7 +184,8 @@ export async function GET(req: NextRequest) {
     });
 
     if (roleUpdateResponse.status === 200) {
-      return NextResponse.json({ role: userData.role }, { status: 200 });
+      // Check if the user's role is updated
+      return NextResponse.json({ role: userData.role }, { status: 200 }); // Return the role
     }
 
     return NextResponse.json(
@@ -178,7 +195,9 @@ export async function GET(req: NextRequest) {
   }
 
   if (userRoles.length == 0) {
+    // Check if the user roles are found
     const roleUpdateResponse = await handleUserRoleUpdate({
+      // Update the user's role in Auth0
       req,
       res,
       session,
@@ -188,7 +207,8 @@ export async function GET(req: NextRequest) {
     });
 
     if (roleUpdateResponse.status === 200) {
-      return NextResponse.json({ role: userData.role }, { status: 200 });
+      // Check if the user's role is updated
+      return NextResponse.json({ role: userData.role }, { status: 200 }); // Return the role
     }
 
     return NextResponse.json(
@@ -198,10 +218,12 @@ export async function GET(req: NextRequest) {
   }
 
   if (userData.role === userRoles[0].name) {
-    await updateSessionWithRole(req, res, session, userData.role);
-    return NextResponse.json({ role: userData.role }, { status: 200 });
+    // Check if the user's role is the same as the role in the database
+    await updateSessionWithRole(req, res, session, userData.role); // Update the session with the role
+    return NextResponse.json({ role: userData.role }, { status: 200 }); // Return the role
   } else {
     const roleUpdateResponse = await handleUserRoleUpdate({
+      // Update the user's role in Auth0
       req,
       res,
       session,
@@ -211,7 +233,8 @@ export async function GET(req: NextRequest) {
     });
 
     if (roleUpdateResponse.status === 200) {
-      return NextResponse.json({ role: userData.role }, { status: 200 });
+      // Check if the user's role is updated
+      return NextResponse.json({ role: userData.role }, { status: 200 }); // Return the role
     }
 
     return NextResponse.json(

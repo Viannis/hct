@@ -6,7 +6,9 @@ import LoadError from "./components/LoadError";
 export default function CareworkerDashboard() {
   return (
     <ShiftsProvider>
-      <LoadError />
+      {/* ShiftsProvider component for the shifts context */}
+      <LoadError />{" "}
+      {/* LoadError component for the error handling and page loading */}
     </ShiftsProvider>
   );
 }

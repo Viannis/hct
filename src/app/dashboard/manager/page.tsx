@@ -23,6 +23,7 @@ import {
   CategoryScale,
   LinearScale,
   PointElement,
+  Colors,
   LineElement,
   Title,
   Tooltip,
@@ -39,6 +40,7 @@ ChartJS.register(
   PointElement,
   LineElement,
   Title,
+  Colors,
   Tooltip,
   Legend
 );
@@ -91,6 +93,7 @@ export default function ManagerDashboard() {
     error: shiftsError,
     refetch: refetchAllShifts,
   } = useQuery(GET_ALL_SHIFTS, {
+    // Fetch all shifts for all the caretakers
     skip: !user,
   });
   const {
@@ -98,6 +101,7 @@ export default function ManagerDashboard() {
     loading: hoursPerDateRangeLoading,
     error: hoursPerDateRangeError,
   } = useQuery(GET_HOURS_PER_DATE_RANGE, {
+    // Fetch the hours worked per date range for all the caretakers
     variables: {
       dateRange: {
         startDate: startDate.toISOString(),
@@ -120,10 +124,16 @@ export default function ManagerDashboard() {
       {
         label: "Hours Worked",
         data: [0, 0, 0, 0, 0, 0, 0],
-        borderColor: "#1890ff",
         tension: 0.1,
       },
     ],
+    options: {
+      plugins: {
+        colors: {
+          enabled: true,
+        },
+      },
+    },
   });
 
   const [previewData, setPreviewData] = useState<TableShift[]>([]);
@@ -136,9 +146,11 @@ export default function ManagerDashboard() {
     if (!shiftsLoading && shiftsData?.allShifts) {
       console.log("Shifts today:", shiftsData.allShifts);
       const active = shiftsData.allShifts.filter(
+        // Filter the shifts to get the active shifts
         (shift: Shift) => !shift.clockOut
       );
       const completed = shiftsData.allShifts.filter(
+        // Filter the shifts to get the completed shifts
         (shift: Shift) => shift.clockOut
       );
       const activeShiftData: TableShift[] = active.map((shift: Shift) => ({
@@ -147,7 +159,7 @@ export default function ManagerDashboard() {
         clockIn: shift.clockIn,
         clockInNote: shift.clockInNote,
         userName: shift.user.name,
-        uniqueId: `${shift.id}-${shift.clockIn}`, // Generate uniqueId once
+        uniqueId: `${shift.id}-${shift.clockIn}`, // Generate uniqueId once to avoid duplicate keys when eport preview table is rendered in a modal over the same the table rendered in the page
       }));
       const completedShiftData: TableShift[] = completed.map(
         (shift: Shift) => ({
@@ -181,11 +193,11 @@ export default function ManagerDashboard() {
       const dataSets: {
         label: string;
         data: number[];
-        borderColor: string;
         tension: number;
       }[] = [];
 
       hoursPerDateRangeData.hoursPerDateRange.forEach(
+        // logic for structing the data from db to be used for the chart
         (user: UserDailyHours) => {
           const userHours = user.dailyTotals.map((daily: DailyTotal) => {
             if (!labels.includes(daily.date)) {
@@ -197,7 +209,6 @@ export default function ManagerDashboard() {
           dataSets.push({
             label: user.userName,
             data: userHours,
-            borderColor: "#1890ff",
             tension: 0.1,
           });
         }
@@ -206,6 +217,13 @@ export default function ManagerDashboard() {
       setChartData({
         labels,
         datasets: dataSets,
+        options: {
+          plugins: {
+            colors: {
+              enabled: true,
+            },
+          },
+        },
       });
     }
   }, [
@@ -216,6 +234,7 @@ export default function ManagerDashboard() {
   ]);
 
   const handleDateRangeSelect = (value: string) => {
+    // Handle the date range select
     setShiftsRefetching(true);
     const endDate = new Date();
     const startDate = new Date();
@@ -240,6 +259,7 @@ export default function ManagerDashboard() {
     }
 
     refetchAllShifts({
+      // Refetch the shifts data from the database
       variables: {
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
@@ -258,11 +278,13 @@ export default function ManagerDashboard() {
   };
 
   const formatText = (text: string) => {
+    // Format the text to be displayed in the table
     if (!text) return "-";
     return text.length > 20 ? `${text.substring(0, 20)}...` : text;
   };
 
   const columnsCompleted = [
+    // Columns for the completed shifts table
     {
       title: "Name",
       dataIndex: "userName",
@@ -296,6 +318,7 @@ export default function ManagerDashboard() {
   ];
 
   const columnsActive = [
+    // Columns for the active shifts table
     {
       title: "Name",
       dataIndex: "userName",
@@ -326,27 +349,32 @@ export default function ManagerDashboard() {
   const [selectedShift, setSelectedShift] = useState<TableShift | null>(null);
 
   const handleModalOpen = (shift: TableShift) => {
+    // Open the modal to view the shift details
     setSelectedShift(shift);
     setModalOpen(true);
   };
 
   const handleModalClose = () => {
+    // Close the modal
     setSelectedShift(null);
     setModalOpen(false);
   };
 
   const handleExportPreview = () => {
+    // Handle for passing the currently selected filtered data for export preview
     const data = tableIsActive ? activeShifts : completedShifts;
     setPreviewData(data);
     setPreviewModalOpen(true);
   };
 
   const handlePreviewModalClose = () => {
+    // Handle for closing the export preview modal
     setPreviewData([]);
     setPreviewModalOpen(false);
   };
 
   const confirmExport = (format: string) => {
+    // Handle for exporting the data as PDF or CSV
     try {
       if (format === "PDF") {
         const doc = new jsPDF();
@@ -355,10 +383,11 @@ export default function ManagerDashboard() {
 
         previewData.forEach((shift, index) => {
           if (index > 0 && index % pageSize === 0) {
+            // Add a new page if the number of rows is greater than the page size
             doc.addPage();
             y = 10;
           }
-          doc.text(`Name: ${shift.userName}`, 10, y);
+          doc.text(`Name: ${shift.userName}`, 10, y); // Add the name of the shift to the PDF
           doc.text(
             `Clock In: ${moment(shift.clockIn).format("YYYY-MM-DD HH:mm")}`,
             10,
@@ -376,6 +405,7 @@ export default function ManagerDashboard() {
 
         doc.save("shifts.pdf");
       } else if (format === "CSV") {
+        // Export the data as CSV
         const parser = new Parser();
         const csv = parser.parse(previewData);
         const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -406,6 +436,7 @@ export default function ManagerDashboard() {
   };
 
   const renderPDFPreview = (data: TableShift[]) => {
+    // Render the PDF preview
     const maxRows = 10; // Maximum number of rows to display
     const displayData = data.length > maxRows ? data.slice(0, maxRows) : data;
 
@@ -423,6 +454,7 @@ export default function ManagerDashboard() {
     }
 
     const columns = [
+      // Columns for the PDF preview
       { title: "Name", dataIndex: "userName", key: "name" },
       {
         title: "Clock In",
@@ -446,6 +478,7 @@ export default function ManagerDashboard() {
     ];
 
     return (
+      // Render the PDF preview
       <div>
         <Flex justify="space-between" align="center" style={{ marginTop: 24 }}>
           <ButtonGroup>
@@ -469,6 +502,7 @@ export default function ManagerDashboard() {
   };
 
   const renderContent = () => {
+    // Render the content of the page based on the loading and error states
     if (shiftsLoading) {
       return <Skeleton active paragraph={{ rows: 4 }} />;
     } else if (shiftsError) {
@@ -487,7 +521,7 @@ export default function ManagerDashboard() {
             </Col>
             <Col span={16}>
               <Card title="Hours Worked Today" style={{ height: "100%" }}>
-                <Line
+                <Line // Multiline chart for cmparing caretakers hours worked every day over a date range
                   data={chartData}
                   options={{
                     maintainAspectRatio: false,
@@ -511,10 +545,11 @@ export default function ManagerDashboard() {
             <Flex justify="space-between" align="center">
               <Flex gap={12}>
                 <h2>{tableIsActive ? "Active Shifts" : "Completed Shifts"}</h2>
-                <Switch defaultChecked onChange={setTableIsActive} />
+                <Switch defaultChecked onChange={setTableIsActive} />{" "}
+                {/* Switch for toggling between active and completed shifts */}
               </Flex>
               <Flex>
-                <Select
+                <Select // Select for the date range for the table
                   defaultValue={dateRange}
                   style={{ width: 120, marginRight: 12 }}
                   onChange={handleDateRangeSelect}
@@ -530,7 +565,7 @@ export default function ManagerDashboard() {
                 </Button>
               </Flex>
             </Flex>
-            {tableIsActive ? (
+            {tableIsActive ? ( // Render the active shifts table
               <Table
                 columns={columnsActive}
                 dataSource={activeShifts}
@@ -539,6 +574,7 @@ export default function ManagerDashboard() {
                 style={{ marginTop: 24 }}
               />
             ) : (
+              // Render the completed shifts table
               <Table
                 columns={columnsCompleted}
                 dataSource={completedShifts}
@@ -548,7 +584,7 @@ export default function ManagerDashboard() {
               />
             )}
           </div>
-          <Modal
+          <Modal // Modal for viewing the shift details
             open={modalOpen}
             onCancel={handleModalClose}
             footer={null}
@@ -580,7 +616,7 @@ export default function ManagerDashboard() {
               </div>
             )}
           </Modal>
-          <Modal
+          <Modal // Modal for previewing the export
             open={previewModalOpen}
             onCancel={handlePreviewModalClose}
             footer={null}

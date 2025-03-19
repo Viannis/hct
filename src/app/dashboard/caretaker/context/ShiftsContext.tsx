@@ -87,7 +87,7 @@ export const ShiftsProvider = ({ children }: { children: React.ReactNode }) => {
     location: false,
   });
 
-  const {
+  const { // Get the shifts data from the database
     data: shiftsData,
     error: shiftsError,
     refetch: refetchShifts,
@@ -103,7 +103,7 @@ export const ShiftsProvider = ({ children }: { children: React.ReactNode }) => {
     },
   });
 
-  const { data: hoursData, refetch: refetchHours } = useQuery(
+  const { data: hoursData, refetch: refetchHours } = useQuery( // Get total hours worked across all the shifts for each day
     GET_HOURS_LAST_7_DAYS,
     {
       onCompleted: () => setLoading((prev) => ({ ...prev, hours: false })),
@@ -114,7 +114,7 @@ export const ShiftsProvider = ({ children }: { children: React.ReactNode }) => {
     }
   );
 
-  const { data: locationData } = useQuery(GET_LOCATION, {
+  const { data: locationData } = useQuery(GET_LOCATION, { // Get the location data from the database
     onCompleted: () => setLoading((prev) => ({ ...prev, location: false })),
     onError: (error) => {
       console.log("Error fetching location", error);
@@ -122,8 +122,8 @@ export const ShiftsProvider = ({ children }: { children: React.ReactNode }) => {
     },
   });
 
-  const [clockInMutation] = useMutation(CLOCK_IN, {
-    update(cache, { data: { clockIn } }) {
+  const [clockInMutation] = useMutation(CLOCK_IN, { // Clock in a shift (graphQL Mutation)
+    update(cache, { data: { clockIn } }) { // Update the cache for faster rendering compared to refetching the data from the database
       console.log("Clocked in mutation update cache triggered");
       console.log("ClockIn data:", clockIn);
 
@@ -131,7 +131,7 @@ export const ShiftsProvider = ({ children }: { children: React.ReactNode }) => {
         query: GET_SHIFTS,
         variables: {
           userId: user?.sub,
-          dateRange: undefined, // Ensure this matches your query usage
+          dateRange: undefined, 
         },
       }) as { shifts: Shift[] };
 
@@ -142,10 +142,10 @@ export const ShiftsProvider = ({ children }: { children: React.ReactNode }) => {
           query: GET_SHIFTS,
           variables: {
             userId: user?.sub,
-            dateRange: undefined, // Ensure this matches your query usage
+            dateRange: undefined,
           },
           data: {
-            shifts: [clockIn, ...shifts],
+            shifts: [clockIn, ...shifts], // Update the cache with the new shift (clockIn)
           },
         });
       }
@@ -154,7 +154,7 @@ export const ShiftsProvider = ({ children }: { children: React.ReactNode }) => {
         query: GET_SHIFTS,
         variables: {
           userId: user?.sub,
-          dateRange: undefined, // Ensure this matches your query usage
+          dateRange: undefined,
         },
       }) as { shifts: Shift[] };
 
@@ -169,10 +169,10 @@ export const ShiftsProvider = ({ children }: { children: React.ReactNode }) => {
     },
   });
 
-  const [clockOutMutation] = useMutation(CLOCK_OUT, {
+  const [clockOutMutation] = useMutation(CLOCK_OUT, { // Clock out a shift (graphQL Mutation)
     onCompleted: () => {
-      refetchShifts();
-      refetchHours();
+      refetchShifts(); // Refetch the shifts data from the database
+      refetchHours(); // Refetch the hours data from the database
     },
     onError: (error) => {
       console.log("Error clocking out", error);
@@ -210,7 +210,7 @@ export const ShiftsProvider = ({ children }: { children: React.ReactNode }) => {
     userError,
     userLoading,
     shiftsError,
-  ]);
+  ]); // Set the shifts, hours, location, user, and loading states
 
   const clockIn = useCallback(
     (note: string) => {
@@ -224,7 +224,7 @@ export const ShiftsProvider = ({ children }: { children: React.ReactNode }) => {
         });
     },
     [clockInMutation]
-  );
+  ); // Clock in a shift
 
   const clockOut = useCallback(
     (id: string, note: string) => {
@@ -238,7 +238,7 @@ export const ShiftsProvider = ({ children }: { children: React.ReactNode }) => {
         });
     },
     [clockOutMutation]
-  );
+  ); // Clock out a shift
 
   const handleDateRangeChange = useCallback(
     (startDate: Date, endDate: Date) => {
@@ -258,9 +258,9 @@ export const ShiftsProvider = ({ children }: { children: React.ReactNode }) => {
         });
     },
     [refetchShifts, user?.sub]
-  );
+  ); // Handle the date range change where Shifts of the caretaker will be fetched based on the date range
 
-  const value = useMemo(
+  const value = useMemo( // Provide the context value to the children
     () => ({
       shifts,
       hoursLast7Days,
@@ -283,17 +283,17 @@ export const ShiftsProvider = ({ children }: { children: React.ReactNode }) => {
       handleDateRangeChange,
       setLoading,
     ]
-  );
+  ); // Provide the context value to the children
 
   return (
     <ShiftsContext.Provider value={value}>{children}</ShiftsContext.Provider>
-  );
+  ); // Return the ShiftsContext.Provider with the value
 };
 
 export const useShifts = () => {
   const context = useContext(ShiftsContext);
-  if (!context) {
+  if (!context) { // If the context is not found, throw an error
     throw new Error("useShifts must be used within a ShiftsProvider");
   }
-  return context;
+  return context; // Return the context
 };

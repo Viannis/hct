@@ -54,6 +54,8 @@ const Shifts = () => {
   } | null>(null);
 
   const [api, contextHolder] = notification.useNotification();
+  const [shiftsLoading, setShiftsLoading] = useState(true);
+  const [shiftRefetching, setShiftRefetching] = useState(false);
   const [canClockIn, setCanClockIn] = useState(false);
   const [needClockOut, setNeedClockOut] = useState(false);
   const [note, setNote] = useState("");
@@ -63,6 +65,15 @@ const Shifts = () => {
   const previousDateRange = useRef(dateRange);
 
   useEffect(() => {
+    // Set the shiftsLoading state based on the loading state
+    setShiftsLoading(loading.shifts);
+    setShiftRefetching(loading.shiftsRefetching);
+  }, [loading.shifts, loading.shiftsRefetching]);
+
+  useEffect(() => {
+    console.log("Shifts", shifts);
+    console.log("Shifts[0]", !shifts[0]);
+    // Set the canClockIn and needClockOut states based on the shifts data
     if (!shifts[0]) {
       setCanClockIn(true);
       setNeedClockOut(false);
@@ -78,6 +89,7 @@ const Shifts = () => {
   }, [shifts]);
 
   useEffect(() => {
+    // Show the notification
     if (notificationConfig) {
       const { message, description, placement, type, autoCloseDuration } =
         notificationConfig;
@@ -87,26 +99,27 @@ const Shifts = () => {
         placement,
         duration: autoCloseDuration,
       });
-      setNotificationConfig(null); // Reset notification config after showing the notification
+      setNotificationConfig(null); //  Reset notification config after showing the notification
     }
   }, [notificationConfig, api]);
 
   const handleDateRangeSelect = (value: string) => {
+    // Handle the date range change
     setLoading((prev) => ({ ...prev, shiftsRefetching: true }));
     const endDate = new Date();
     const startDate = new Date();
 
     switch (value) {
       case "1 week":
-        startDate.setDate(endDate.getDate() - 7);
+        startDate.setDate(endDate.getDate() - 7); // Set the start date to 7 days ago
         setDateRange("1 week");
         break;
       case "1 month":
-        startDate.setMonth(endDate.getMonth() - 1);
+        startDate.setMonth(endDate.getMonth() - 1); // Set the start date to 1 month ago
         setDateRange("1 month");
         break;
       case "6 months":
-        startDate.setMonth(endDate.getMonth() - 6);
+        startDate.setMonth(endDate.getMonth() - 6); // Set the start date to 6 months ago
         setDateRange("6 months");
         break;
     }
@@ -131,6 +144,7 @@ const Shifts = () => {
   };
 
   const isWithinRange = ({
+    // Check if the user is within the location range
     absLat,
     absLong,
     absRadius,
@@ -166,6 +180,7 @@ const Shifts = () => {
   };
 
   const handleGeolocationSuccess = async (position: GeolocationPosition) => {
+    // Handle the geolocation success
     if (!location) {
       setNotificationConfig({
         message: "Location data is unavailable",
@@ -179,7 +194,7 @@ const Shifts = () => {
       return;
     }
 
-    const { latitude, longitude } = position.coords;
+    const { latitude, longitude } = position.coords; // Get the latitude and longitude of the user
     const isUserInRange = isWithinRange({
       absLat: location.latitude,
       absLong: location.longitude,
@@ -191,7 +206,7 @@ const Shifts = () => {
     if (isUserInRange) {
       console.log("User is in the location range");
       try {
-        await handleClockIn(note);
+        await handleClockIn(note); // Clock in the shift (graphQL Mutation)
         setNotificationConfig({
           message: "Success",
           description: "Clocked in successfully",
@@ -200,7 +215,7 @@ const Shifts = () => {
           autoCloseDuration: 3,
         });
         setNote("");
-        setIsAddingShift(false);
+        setIsAddingShift(false); // Loading state to render new row
         setLoading((prev) => ({ ...prev, clockInOut: false }));
         return;
       } catch (error) {
@@ -233,6 +248,7 @@ const Shifts = () => {
   };
 
   const handleGeolocationError = (error: GeolocationPositionError) => {
+    // Handle the geolocation error
     setNotificationConfig({
       message: "Error getting your position",
       description:
@@ -268,6 +284,7 @@ const Shifts = () => {
   };
 
   const clockOut = async () => {
+    // Clock out the shift (graphQL Mutation)
     setLoading((prev) => ({ ...prev, clockInOut: true }));
     try {
       await handleClockOut(shifts[0]?.id, note);
@@ -294,21 +311,25 @@ const Shifts = () => {
   };
 
   const handleRowClick = (shift: Shift) => {
+    // Opens the modal to view complete details of the shift
     setSelectedShift(shift);
     setIsModalVisible(true);
   };
 
   const handleModalClose = () => {
+    // Closes the modal
     setIsModalVisible(false);
     setSelectedShift(null);
   };
 
   const formatText = (text: string) => {
+    // Format the text to be displayed in the table
     if (!text) return "-";
     return text.length > 20 ? `${text.substring(0, 20)}...` : text;
   };
 
   const columns = [
+    // Define the columns for the table
     {
       title: "Date",
       dataIndex: "clockIn",
@@ -349,11 +370,14 @@ const Shifts = () => {
   ];
 
   const renderContent = () => {
-    if (loading.shifts) {
+    // Render the content of the table
+    if (shiftsLoading) {
+      // If the shifts are loading
       return <Skeleton active paragraph={{ rows: 4 }} />;
     } else if (error.shifts) {
       return <div>Error fetching shifts</div>;
     } else if (canClockIn || needClockOut) {
+      // If the user can clock in or needs to clock out
       return (
         <>
           <Flex
@@ -378,7 +402,7 @@ const Shifts = () => {
                 placeholder="Add a note (optional)"
                 style={{ maxWidth: 300 }}
               />
-              {shifts[0]?.clockOut ? (
+              {canClockIn ? ( // Render clock in or clock out button based on the shift data
                 <Button
                   type="primary"
                   onClick={clockIn}
@@ -399,8 +423,8 @@ const Shifts = () => {
           </Flex>
           <Table
             columns={columns}
-            loading={loading.shiftsRefetching}
-            dataSource={isAddingShift ? [placeholderShift, ...shifts] : shifts}
+            loading={shiftRefetching}
+            dataSource={isAddingShift ? [placeholderShift, ...shifts] : shifts} // Render the shifts data with loading state row
             rowKey="id"
             pagination={{ pageSize: 10 }}
           />
@@ -415,7 +439,7 @@ const Shifts = () => {
     <div>
       {contextHolder}
       {renderContent()}
-      <Modal
+      <Modal // Modal for viewing the shift details
         title="Shift Details"
         open={isModalVisible}
         onCancel={handleModalClose}

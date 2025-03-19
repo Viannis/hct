@@ -51,10 +51,12 @@ export default function DashboardLayout({
   }, [notificationConfig, api]);
 
   const handleLogout = async () => {
+    // Logout the user via Auth0's logout endpoint
     router.push("/api/auth/logout");
   };
 
   const managerMenuItems = [
+    // Manager menu items
     {
       key: "/dashboard/manager",
       icon: <HomeOutlined />,
@@ -73,7 +75,6 @@ export default function DashboardLayout({
     {
       key: "/api/auth/logout",
       icon: <LogoutOutlined />,
-      // eslint-disable-next-line @next/next/no-html-link-for-pages
       label: (
         <Button type="text" style={{ padding: 0 }} onClick={handleLogout}>
           Logout
@@ -83,6 +84,7 @@ export default function DashboardLayout({
   ];
 
   const careTakerMenuItems = [
+    // Caretaker menu items
     {
       key: "/dashboard/caretaker",
       icon: <HomeOutlined />,
@@ -96,7 +98,6 @@ export default function DashboardLayout({
     {
       key: "/api/auth/logout",
       icon: <LogoutOutlined />,
-      // eslint-disable-next-line @next/next/no-html-link-for-pages
       label: (
         <Button type="text" style={{ padding: 0 }} onClick={handleLogout}>
           Logout
@@ -106,6 +107,7 @@ export default function DashboardLayout({
   ];
 
   const routeCheckForKey = (): string[] => {
+    // Check the route for the appropriate menu item and set the active key even if a subroute is open
     if (pathname.startsWith("/dashboard/manager")) {
       for (let index = managerMenuItems.length - 2; index >= 0; index--) {
         const element = managerMenuItems[index];
@@ -126,9 +128,9 @@ export default function DashboardLayout({
 
   return (
     <>
-      {contextHolder}
+      {contextHolder} {/* Context holder for notifications */}
       <Layout style={{ minHeight: "100vh" }}>
-        <Sider
+        <Sider // Sider component for the sidebar
           theme="light"
           breakpoint="lg"
           onBreakpoint={(broken) => {
@@ -164,12 +166,15 @@ export default function DashboardLayout({
             }
           />
         </Sider>
-        <Layout
+        <Layout // Layout component for the main content to be rendered based on the pathname
           style={{ marginLeft: collapsed ? 79 : 200, background: "#fff" }}
         >
           <Content style={{ margin: "24px 16px", padding: 24 }}>
             <UserLocationProvider>
-              <LoadError>{children}</LoadError>
+              {" "}
+              {/* UserLocationProvider component for the user location context */}
+              <LoadError>{children}</LoadError>{" "}
+              {/* LoadError component for the error handling and page loading */}
             </UserLocationProvider>
           </Content>
         </Layout>

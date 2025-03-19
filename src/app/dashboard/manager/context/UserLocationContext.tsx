@@ -60,7 +60,7 @@ export const UserLocationProvider = ({
       console.log("Error fetching location", error);
       setError((prev) => ({ ...prev, location: "Error fetching location" }));
     },
-  });
+  }); // Fetch the location from the database
 
   const [createLocationMutation] = useMutation(CREATE_LOCATION, {
     onCompleted: () => setLoading((prev) => ({ ...prev, location: false })),
@@ -68,7 +68,7 @@ export const UserLocationProvider = ({
       console.log("Error creating location", error);
       setError((prev) => ({ ...prev, location: "Error creating location" }));
     },
-  });
+  }); // Create the location in the database
 
   const [updateLocationMutation] = useMutation(UPDATE_LOCATION, {
     onCompleted: () => setLoading((prev) => ({ ...prev, location: false })),
@@ -76,7 +76,7 @@ export const UserLocationProvider = ({
       console.log("Error updating location", error);
       setError((prev) => ({ ...prev, location: "Error updating location" }));
     },
-  });
+  }); // Update the location in the database
 
   useEffect(() => {
     if (data) {
@@ -92,30 +92,30 @@ export const UserLocationProvider = ({
       setUser(sessionUser);
       setLoading((prev) => ({ ...prev, user: false }));
     }
-  }, [data, userError, userLoading, sessionUser]);
+  }, [data, userError, userLoading, sessionUser]); // Set the location and user in the state
 
   const createLocation = useCallback(
     (location: Location) =>
       createLocationMutation({ variables: { input: location } }),
     [createLocationMutation]
-  );
+  ); // Create the location in the database
 
   const updateLocation = useCallback(
     (location: Location) =>
       updateLocationMutation({ variables: { input: location } }),
     [updateLocationMutation]
-  );
+  ); // Update the location in the database
 
   const value = useMemo(
     () => ({ location, loading, error, createLocation, updateLocation, user }),
     [location, loading, error, createLocation, updateLocation, user]
-  );
+  ); // Create the value for the context
 
   return (
     <UserLocationContext.Provider value={value}>
       {children}
     </UserLocationContext.Provider>
-  );
+  ); // Return the context provider
 };
 
 export const useUserLocation = () => {
@@ -123,6 +123,6 @@ export const useUserLocation = () => {
   if (!context)
     throw new Error(
       "useUserLocation must be used within a UserLocationProvider"
-    );
+    ); // Throw an error if the context is not found
   return context;
 };

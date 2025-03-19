@@ -10,7 +10,7 @@ import type { InputRef, NotificationArgsProps } from "antd";
 import { CREATE_LOCATION, UPDATE_LOCATION } from "@utils/mutations";
 import { Location } from "@prisma/client";
 
-const libraries: Libraries = ["places", "geocoding"];
+const libraries: Libraries = ["places", "geocoding"]; // Libraries for the Google Maps API
 type NotificationPlacement = NotificationArgsProps["placement"];
 type NotificationType = "success" | "info" | "warning" | "error";
 const { Text } = Typography;
@@ -40,7 +40,7 @@ export default function LocationPage() {
     autoCloseDuration: number;
   } | null>(null);
 
-  const [api, contextHolder] = notification.useNotification();
+  const [api, contextHolder] = notification.useNotification(); // Notification API Ant Design
 
   useEffect(() => {
     if (notificationConfig) {
@@ -61,11 +61,13 @@ export default function LocationPage() {
   }
 
   const { isLoaded, loadError } = useLoadScript({
+    // Load the Google Maps API
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
     libraries,
   });
 
   useEffect(() => {
+    // Set state for location data
     if (!loading && data?.location) {
       setLocation(data.location);
       setLatitude(data.location.latitude);
@@ -76,28 +78,33 @@ export default function LocationPage() {
   }, [loading, data]);
 
   const handleSearch = () => {
+    // Handle for searching the location
     if (isLoaded && searchInputRef.current?.input) {
       console.log("Google Maps API has loaded");
       const inputElement = searchInputRef.current.input;
       const autocomplete = new google.maps.places.Autocomplete(inputElement, {
+        // Autocomplete object
         types: ["geocode"],
         componentRestrictions: { country: ["us", "in", "gb"] },
       });
 
       autocomplete.addListener("place_changed", () => {
-        const place = autocomplete.getPlace();
+        // Event listener to the autocomplete object
+        const place = autocomplete.getPlace(); // Get the place object
 
         if (!place?.geometry?.location) {
+          // Check if the place object is valid
           console.error("Invalid place object:", place);
           return;
         }
 
         console.log("Place object:", place);
 
-        setLatitude(place.geometry.location.lat());
-        setLongitude(place.geometry.location.lng());
+        setLatitude(place.geometry.location.lat()); // Set the latitude
+        setLongitude(place.geometry.location.lng()); // Set the longitude
 
         if (!place.formatted_address) {
+          // Check if the formated name (shorter name of a place provided by Google Maps) is valid
           console.error("Invalid place object:", place);
           return;
         }
@@ -105,6 +112,7 @@ export default function LocationPage() {
         setSearchLocation(place.formatted_address);
       });
     } else if (loadError) {
+      // Error loading the Google Maps API
       console.error("Error loading Google Maps API:", loadError);
     }
   };
@@ -114,19 +122,22 @@ export default function LocationPage() {
 
   const validateRadius = (radius: number) => {
     if (radius < 1) {
-      return "Radius must be at least 1 meter.";
+      // Check if the radius is valid (must be at least 1 Kilometer)
+      return "Radius must be at least 1 Kilometer.";
     }
     return "";
   };
 
   const validateSearchLocation = (searchLocation: string) => {
     if (searchLocation.trim() === "") {
+      // Check if the search location is valid (must be at least 1 character)
       return "Location is required.";
     }
     return "";
   };
 
   const handleRadiusChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Handle for changing the radius
     const radiusValue = parseFloat(e.target.value);
     setRadius(radiusValue);
     setErrors((prevErrors) => ({
@@ -136,8 +147,9 @@ export default function LocationPage() {
   };
 
   const handleSaveLocation = async () => {
-    const searchLocationError = validateSearchLocation(searchLocation);
-    const radiusError = validateRadius(radius);
+    // Handle for saving the location in the database
+    const searchLocationError = validateSearchLocation(searchLocation); // Validate the search location
+    const radiusError = validateRadius(radius); // Validate the radius
 
     setErrors({
       searchLocation: searchLocationError,
@@ -160,6 +172,7 @@ export default function LocationPage() {
 
       try {
         const response = await createLocation({
+          // Create the location in the database
           variables: {
             input: {
               name: searchLocation,
@@ -203,6 +216,7 @@ export default function LocationPage() {
   };
 
   const handleUpdateLocation = async () => {
+    // Handle for updating the location in the database
     const searchLocationError = validateSearchLocation(searchLocation);
     const radiusError = validateRadius(radius);
 
@@ -282,6 +296,7 @@ export default function LocationPage() {
   };
 
   const renderLongerLocationName = () => {
+    // Truncate the location name if it is longer than 40 characters and show the full name when the more button is clicked
     if (location?.name) {
       if (location.name.length > 40) {
         if (!expanded) {
@@ -326,7 +341,7 @@ export default function LocationPage() {
           <Space direction="horizontal" align="start">
             <Space direction="vertical">
               <label htmlFor="searchLocation">Search Location</label>
-              <Input
+              <Input // Input for the search location
                 ref={searchInputRef}
                 placeholder="Search location"
                 maxLength={200}
@@ -339,7 +354,7 @@ export default function LocationPage() {
             </Space>
             <Space direction="vertical">
               <label htmlFor="radius">Radius (Km.)</label>
-              <Input
+              <Input // Input for the radius
                 type="number"
                 name="radius"
                 placeholder="Enter radius in Kms."
@@ -399,7 +414,7 @@ export default function LocationPage() {
     <div>
       {contextHolder}
       {!location && !isEditing ? (
-        <Alert
+        <Alert // Alert for the location setup required
           message="Location Setup Required"
           description="Please set up the location and perimeter for staff clock-in."
           type="warning"
@@ -412,7 +427,7 @@ export default function LocationPage() {
           style={{ marginBottom: 24 }}
         />
       ) : (
-        renderContent()
+        renderContent() // Render the edit or view location content
       )}
     </div>
   );

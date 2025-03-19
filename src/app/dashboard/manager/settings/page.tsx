@@ -19,10 +19,10 @@ export default function SettingsPage() {
   } = useQuery(GET_USER, {
     variables: { userId: user?.sub },
     skip: !user,
-  });
+  }); // Get the user data from the database
 
   const [updateUserProfile, { loading: mutationLoading }] =
-    useMutation(UPDATE_USER_PROFILE);
+    useMutation(UPDATE_USER_PROFILE); // Update the user profile mutation
 
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState("");
@@ -36,20 +36,22 @@ export default function SettingsPage() {
     if (data?.user) {
       setName(data.user.name);
     }
-  }, [data]);
+  }, [data]); // Set the name to the user's name
 
   if (userLoading || queryLoading) return <Spin />;
   if (userError || queryError) return <Alert message="Error" type="error" />;
 
   const handleEdit = () => {
+    // Handle for editing the user's name
     setIsEditing(true);
   };
 
   const onEdit = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Handle for editing the user's name  and validation
     const newName = e.target.value;
     setName(newName);
     const errors = {
-      empty: newName.trim() === "",
+      empty: newName.trim() === "", // Check if the name is empty
       hasNumbers: /\d/.test(newName),
       tooLong: newName.length > 20,
     };
@@ -58,6 +60,7 @@ export default function SettingsPage() {
   };
 
   const handleUpdate = async () => {
+    // Handle for updating the user's name
     const errors = {
       empty: name.trim() === "",
       hasNumbers: /\d/.test(name),
@@ -65,12 +68,14 @@ export default function SettingsPage() {
     };
 
     if (errors.empty || errors.hasNumbers || errors.tooLong) {
+      // Check if the name is valid
       setError(errors);
       return;
     }
 
     try {
       const { data: updatedData } = await updateUserProfile({
+        // Update the user profile
         variables: { input: { name: name } },
       });
       notification.success({
@@ -91,13 +96,14 @@ export default function SettingsPage() {
   };
 
   const handleCancel = () => {
+    // Handle for canceling the edit
     setIsEditing(false);
     setError({ empty: false, hasNumbers: false, tooLong: false });
   };
 
   return (
     <div>
-      {isEditing ? (
+      {isEditing ? ( // Render the edit form
         <div>
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             <Input
@@ -106,12 +112,13 @@ export default function SettingsPage() {
               style={{ maxWidth: 300 }}
               disabled={mutationLoading}
             />
-            {error.empty && <Text type="danger">Name cannot be empty.</Text>}
+            {error.empty && <Text type="danger">Name cannot be empty.</Text>}{" "}
+            {/* Error message for empty name */}
             {error.hasNumbers && (
-              <Text type="danger">Name cannot contain numbers.</Text>
+              <Text type="danger">Name cannot contain numbers.</Text> // Error message for name containing numbers
             )}
             {error.tooLong && (
-              <Text type="danger">Name cannot exceed 20 characters.</Text>
+              <Text type="danger">Name cannot exceed 20 characters.</Text> // Error message for name exceeding 20 characters
             )}
           </div>
           <div style={{ marginTop: 8 }}>
@@ -134,6 +141,7 @@ export default function SettingsPage() {
           </div>
         </div>
       ) : (
+        // Render the user's name
         <div>
           <Text>{data?.user?.name}</Text>
           <Text type="secondary"> ({data?.user?.role})</Text>

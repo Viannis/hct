@@ -39,9 +39,9 @@ const CareTakers = () => {
     placement: NotificationPlacement;
     type: NotificationType;
     autoCloseDuration: number;
-  } | null>(null);
+  } | null>(null); // Notification config
 
-  const [api, contextHolder] = notification.useNotification();
+  const [api, contextHolder] = notification.useNotification(); // Notification API Ant Design
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -58,7 +58,7 @@ const CareTakers = () => {
     }
   }, [notificationConfig, api]);
 
-  useEffect(() => {
+  useEffect(() => { // Set the data and loading state
     if (!careTakersDataLoading && careTakersData) {
       setData(careTakersData.caretakers);
       console.log("careTakersData", careTakersData.caretakers);
@@ -77,13 +77,12 @@ const CareTakers = () => {
     return <div>Error loading shifts: {careTakersDataError.message}</div>;
   }
 
-  const handleRowClick = (caretaker: CareTaker) => {
+  const handleRowClick = (caretaker: CareTaker) => { // Redirect to a caretakers page listing all their shifts
     console.log("Row clicked", caretaker);
     router.push(`${pathname}/${caretaker.id}`);
-    // redirect to caretaker page
   };
 
-  const columns = [
+  const columns = [ // Columns for the table
     {
       title: "Name",
       dataIndex: "name",
@@ -121,7 +120,7 @@ const CareTakers = () => {
     },
   ];
 
-  const renderContent = () => {
+  const renderContent = () => { // Render the content of the page
     if (isLoading) {
       return <div>Loading...</div>;
     } else {

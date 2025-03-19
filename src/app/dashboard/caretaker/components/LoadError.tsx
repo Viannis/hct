@@ -4,8 +4,8 @@ import Shifts from "./Shifts";
 import Stats from "./Stats";
 
 export default function LoadError() {
-  const { error, loading, location } = useShifts();
-  if (loading.user || loading.location) {
+  const { error, loading, location } = useShifts(); // Get the error, loading, and location states from the ShiftsContext
+  if (loading.user || loading.location) { // If the user or location is loading
     return (
       <div
         style={{
@@ -20,7 +20,7 @@ export default function LoadError() {
       </div>
     );
   }
-  if (error.user || error.location) {
+  if (error.user || error.location) { // If the user or location has an error 
     return (
       <div
         style={{
@@ -37,8 +37,8 @@ export default function LoadError() {
       </div>
     );
   }
-  if (!location) {
-    return (
+  if (!location) { // If the location is not found
+    return ( // Return handling for when the location hasn't been set by the manager
       <div
         style={{
           display: "flex",
@@ -55,7 +55,7 @@ export default function LoadError() {
   }
   return (
     <>
-      <Stats />
+      <Stats /> {/* Stats component for visualizing the data */}
       <div
         style={{
           marginTop: 56,
@@ -63,7 +63,7 @@ export default function LoadError() {
           borderTop: "1px solid #f0f0f0",
         }}
       >
-        <Shifts />
+        <Shifts /> {/* Shifts table component for displaying the shifts */}
       </div>
     </>
   );

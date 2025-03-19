@@ -9,7 +9,7 @@ interface CreateUserInput {
   auth0Id: string;
 }
 
-export const createUserInDb = async ({
+export const createUserInDb = async ({ // Service function to create a user in the database
   input,
   apolloClient,
 }: {

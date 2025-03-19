@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
 
     const { roleName, name } = body; // Extract data
 
-    if (!roleName || !name) {
+    if (!roleName || !name) { // Check if the role name and name are provided
       return new Response(
         JSON.stringify({ message: "Missing required fields" }),
         {
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
 
     console.log("Role & name:", roleName, name);
 
-    if (roleName !== "MANAGER" && roleName !== "CARETAKER") {
+    if (roleName !== "MANAGER" && roleName !== "CARETAKER") { // Check if the role name is valid
       console.log("Role mismatch");
       return NextResponse.json(
         { error: "Role name must be either 'MANAGER' or 'CARETAKER'" },
@@ -40,9 +40,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const session = await getSession(req, res);
+    const session = await getSession(req, res); // Get the session
 
-    if (!session?.user) {
+    if (!session?.user) { // Check if the session is found and the user is authenticated
       console.log("Session not found or User not authenticated");
       return NextResponse.json(
         { error: "User not authenticated" },
@@ -52,8 +52,8 @@ export async function POST(req: NextRequest) {
 
     console.log("Session found:", session.user);
 
-    const idToken = session.idToken;
-    if (!idToken) {
+    const idToken = session.idToken; // Get the id token of the user from app session (Auth0)
+    if (!idToken) { // Check if the id token is found
       console.error("Error fetching access token");
       return NextResponse.json(
         { error: "Error fetching access token" },
@@ -64,11 +64,11 @@ export async function POST(req: NextRequest) {
 
     console.log("Initializing Apollo client");
 
-    const apolloClient = initializeApolloClient(idToken);
+    const apolloClient = initializeApolloClient(idToken); // Initialize the Apollo client
 
-    const accessToken = await getManagementAPIAccessToken();
+    const accessToken = await getManagementAPIAccessToken(); // Get the management API access token from Auth0
 
-    if (!accessToken) {
+    if (!accessToken) { // Check if the access token is found
       console.error("Error fetching management API access token");
       return NextResponse.json(
         { error: "Error fetching management API access token" },
@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
 
     console.log("Assigning role to user:", session.user.sub);
 
-    const { userFromDB } = await createUserInDb({
+    const { userFromDB } = await createUserInDb({ // Create the user in the database
       input: {
         email: session.user.email,
         name: name,
@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
       apolloClient: apolloClient,
     });
 
-    if (!userFromDB) {
+    if (!userFromDB) { // Check if the user is created in the database
       console.error("Error creating user in DB:");
       return NextResponse.json(
         { error: "Error creating user in DB" },
@@ -98,9 +98,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const domain = process.env.AUTH0_DOMAIN;
+    const domain = process.env.AUTH0_DOMAIN; // Get the Auth0 domain from the environment variables
 
-    if (!domain) {
+    if (!domain) { // Check if the domain is found
       console.error("Missing Auth0 environment variables");
       return NextResponse.json(
         { error: "Missing Auth0 environment variables" },
@@ -108,8 +108,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const config = {
-      method: "get",
+    const config = { 
+      method: "get", // Get the roles from Auth0
       maxBodyLength: Infinity,
       url: `https://${domain}/api/v2/roles`,
       headers: {
@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
 
     const rolesResponse = await axios.request(config);
 
-    if (!rolesResponse.data || !Array.isArray(rolesResponse.data)) {
+    if (!rolesResponse.data || !Array.isArray(rolesResponse.data)) { // Check if the roles are found and are an array
       console.error(
         "Invalid response from Auth0: roles data is missing or not an array"
       );
@@ -133,7 +133,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const role = rolesResponse.data.find(
+    const role = rolesResponse.data.find( // get the role id by comparing the current user's role name with that of all the roles fetched from Auth0
       (role) => role.name.toUpperCase() === userFromDB.role.toUpperCase()
     );
 
@@ -145,13 +145,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const hasUpdatedRoleInAuth0 = await updateUserRoleInAuth0({
+    const hasUpdatedRoleInAuth0 = await updateUserRoleInAuth0({ // Update the user's role in Auth0
       role: role,
       accessToken: accessToken,
       userId: session.user.sub,
     });
 
-    if (!hasUpdatedRoleInAuth0) {
+    if (!hasUpdatedRoleInAuth0) { // Check if the user's role is updated in Auth0
       console.error("Error updating user role in Auth0");
       return NextResponse.json(
         { error: "Error updating user role in Auth0" },
@@ -159,7 +159,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    await updateSession(req, res, {
+    await updateSession(req, res, { // Update the session
       ...session,
       user: {
         ...session.user,

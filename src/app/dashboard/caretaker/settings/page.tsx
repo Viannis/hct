@@ -19,10 +19,10 @@ export default function SettingsPage() {
   } = useQuery(GET_USER, {
     variables: { userId: user?.sub },
     skip: !user,
-  });
+  }); // Get the user's profile data from the database
 
   const [updateUserProfile, { loading: mutationLoading }] =
-    useMutation(UPDATE_USER_PROFILE);
+    useMutation(UPDATE_USER_PROFILE); // Update the user's profile data in the database
 
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState("");
@@ -36,7 +36,7 @@ export default function SettingsPage() {
     if (data?.user) {
       setName(data.user.name);
     }
-  }, [data]);
+  }, [data]); // Set the name to the user's profile data
 
   if (userLoading || queryLoading) return <Spin />;
   if (userError || queryError) return <Alert message="Error" type="error" />;
@@ -45,7 +45,7 @@ export default function SettingsPage() {
     setIsEditing(true);
   };
 
-  const onEdit = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onEdit = (e: React.ChangeEvent<HTMLInputElement>) => { // Set the name to the user's profile data
     const newName = e.target.value;
     setName(newName);
     const errors = {
@@ -57,7 +57,7 @@ export default function SettingsPage() {
     setError(errors);
   };
 
-  const handleUpdate = async () => {
+  const handleUpdate = async () => { // Update the user's profile data
     const errors = {
       empty: name.trim() === "",
       hasNumbers: /\d/.test(name),
@@ -70,7 +70,7 @@ export default function SettingsPage() {
     }
 
     try {
-      const { data: updatedData } = await updateUserProfile({
+      const { data: updatedData } = await updateUserProfile({ // Update the user's profile data (grpahQL Mutation)
         variables: { input: { name: name } },
       });
       notification.success({
@@ -90,7 +90,7 @@ export default function SettingsPage() {
     }
   };
 
-  const handleCancel = () => {
+  const handleCancel = () => { // Cancel the edit
     setIsEditing(false);
     setError({ empty: false, hasNumbers: false, tooLong: false });
   };
@@ -115,13 +115,13 @@ export default function SettingsPage() {
               style={{ maxWidth: 300 }}
               disabled={mutationLoading}
             />
-            {error.empty && <Text type="danger">Name cannot be empty.</Text>}
+            {error.empty && <Text type="danger">Name cannot be empty.</Text>} {/* Error message for the name */}
             {error.hasNumbers && (
               <Text type="danger">Name cannot contain numbers.</Text>
-            )}
+            )} {/* Error message for the name */}
             {error.tooLong && (
               <Text type="danger">Name cannot exceed 20 characters.</Text>
-            )}
+            )} {/* Error message for the name */}
           </div>
           <div style={{ marginTop: 8 }}>
             <Button

@@ -9,7 +9,7 @@ export default function LoadError({
 }) {
   const { error, loading, location } = useUserLocation();
 
-  if (loading.user || loading.location) {
+  if (loading.user || loading.location) { // Render the loading
     return (
       <div
         style={{
@@ -24,7 +24,7 @@ export default function LoadError({
       </div>
     );
   }
-  if (error.user || error.location) {
+  if (error.user || error.location) { // Render the error
     return (
       <div
         style={{
@@ -43,7 +43,7 @@ export default function LoadError({
   }
   if (!location) {
     return (
-      <Alert
+      <Alert // Alert for the location setup required
         message="Location Setup Required"
         description="Please set up the location and perimeter for staff clock-in."
         type="warning"
@@ -60,5 +60,5 @@ export default function LoadError({
       />
     );
   }
-  return children;
-}
+  return children; // Return the children if the location is set, no more loading or error
+} 

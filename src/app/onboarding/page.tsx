@@ -36,7 +36,8 @@ const Onboarding = () => {
   const [role, setRole] = useState<string | null>(null);
   const [accountSetupIncomplete, setAccountSetupIncomplete] = useState(false);
   const { user, isLoading, error } = useUser();
-  // const [userInDb, setUserInDb] = useState<User | null>(null);
+  // useUser hook from Auth0 is used to manage user authentication state.
+
   const router = useRouter();
   const [form] = Form.useForm();
   const [notificationConfig, setNotificationConfig] = useState<{
@@ -47,6 +48,7 @@ const Onboarding = () => {
     autoCloseDuration: number;
   } | null>(null);
   const [api, contextHolder] = notification.useNotification();
+  // Ant Design's notification API for displaying notifications.
 
   useEffect(() => {
     if (notificationConfig) {
@@ -61,13 +63,14 @@ const Onboarding = () => {
       setNotificationConfig(null); // Reset notification config after showing the notification
     }
   }, [notificationConfig, api]);
+  // This effect handles displaying notifications to the user based on the notification configuration state.
 
   useEffect(() => {
     setPageLoading(true);
     async function checkAccountSetupStatus() {
       if (user) {
         const roles: string[] = user[
-          "https://localhost-murphy.com/roles"
+          "https://localhost-murphy.com/roles" // Session namespace url for roles (Auth0)
         ] as string[];
         console.log("Roles found in user session:", roles);
         if (roles && roles.length > 0) {
@@ -76,7 +79,7 @@ const Onboarding = () => {
         } else {
           try {
             const userRoleResponse = await axios.get(
-              "/api/get-loggedin-user-role"
+              "/api/get-loggedin-user-role" // API endpoint to get the user's role to check if they are onboarded already and ended up here by mistake
             );
             console.log("User role response:", userRoleResponse.data);
             if (!userRoleResponse.data) {
@@ -123,36 +126,12 @@ const Onboarding = () => {
 
     checkAccountSetupStatus();
   }, [isLoading, user, error]);
-
-  // useEffect(() => {
-  //   const checkUserInDb = async () => {
-  //     setPageLoading(true);
-  //     if (user && !isLoading && !error) {
-  //       try {
-  //         const response = await axios.get("/api/is-user-in-db");
-  //         if (response.data.userInDb) {
-  //           setUserInDb(response.data.userInDb);
-  //           setPageLoading(false);
-  //         } else {
-  //           setPageLoading(false);
-  //         }
-  //       } catch (error) {
-  //         setPageError("Error verifying user. Try later.");
-  //         console.error("Error checking user in DB:", error);
-  //       }
-  //     }
-  //     if (error) {
-  //       setPageError("Error fetching user session. Try logging in again.");
-  //     }
-  //   };
-
-  //   checkUserInDb();
-  // }, [user, isLoading, error]);
+  // This effect checks the user's account setup status and role, setting the appropriate state for navigation.
 
   useEffect(() => {
     const fetchRoles = async () => {
       axios
-        .get("/api/get-user-roles")
+        .get("/api/get-user-roles") // API endpoint to get all available roles from Auth0 for type safety roles dropdown during onboarding
         .then((response) => {
           console.log("Roles:", response.data.roles);
           setRoles(response.data.roles);
@@ -165,6 +144,7 @@ const Onboarding = () => {
 
     fetchRoles();
   }, []);
+  // This effect fetches available roles from the server and updates the roles state.
 
   const handleSubmit = async (values: { name: string; role: string }) => {
     const { name, role } = values;
@@ -175,6 +155,7 @@ const Onboarding = () => {
       formData.append("name", name);
       // Assign the role
       const assignRoleResponse = await axios.post("/api/assign-role-name", {
+        // API endpoint to creating user record in the DB and assigning role in Auth0
         roleName: role,
         name: name,
       });
@@ -182,7 +163,7 @@ const Onboarding = () => {
       if (assignRoleResponse.data) {
         if (assignRoleResponse.data.role) {
           router.push(
-            `/dashboard/${assignRoleResponse.data.role.toLowerCase()}`
+            `/dashboard/${assignRoleResponse.data.role.toLowerCase()}` // Navigate to the appropriate dashboard based on the assigned role
           );
         } else {
           setPageError("Error assigning role");
@@ -193,6 +174,7 @@ const Onboarding = () => {
       console.error("Error assigning role", error);
     }
   };
+  // Handles form submission, assigning a role to the user and navigating to the appropriate dashboard.
 
   const renderContent = () => {
     if (pageLoading) {
@@ -214,6 +196,7 @@ const Onboarding = () => {
       return <div>{pageError}</div>;
     }
     if (role) {
+      // If the user is already onboarded, navigate to the appropriate dashboard
       return (
         <Layout style={{ minHeight: "100vh", padding: "50px" }}>
           <Content
@@ -223,7 +206,7 @@ const Onboarding = () => {
             <h2>You are already onboarded.</h2>
             <Button
               type="primary"
-              onClick={() => router.push(`/dashboard/${role.toLowerCase()}`)}
+              onClick={() => router.push(`/dashboard/${role.toLowerCase()}`)} // Navigate to the appropriate dashboard based on the assigned role
               size="large"
               style={{ marginTop: 20 }}
             >
@@ -234,6 +217,7 @@ const Onboarding = () => {
       );
     }
     if (accountSetupIncomplete) {
+      // If the user is not onboarded, show the onboarding form
       return (
         <Layout style={{ minHeight: "100vh", padding: "50px" }}>
           <Content style={{ maxWidth: "600px", margin: "auto" }}>
@@ -270,6 +254,7 @@ const Onboarding = () => {
       );
     }
     return (
+      // If there is an error, show the error message
       <Layout style={{ minHeight: "100vh", padding: "50px" }}>
         <Content
           style={{ maxWidth: "600px", margin: "auto", textAlign: "center" }}
@@ -280,6 +265,7 @@ const Onboarding = () => {
       </Layout>
     );
   };
+  // Renders the appropriate content based on the page's loading state, error state, and user role.
 
   return (
     <>

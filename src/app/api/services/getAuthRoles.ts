@@ -6,7 +6,7 @@ type UserRole = {
   description?: string;
 };
 
-export async function getAuthRoles(
+export async function getAuthRoles( // Service function to fetch all the roles set in Auth0
   accessToken: string
 ): Promise<{ authRoles?: UserRole[]; error?: string }> {
   const domain = process.env.AUTH0_DOMAIN;
@@ -17,17 +17,17 @@ export async function getAuthRoles(
   }
 
   try {
-    const config = {
-      method: "get",
-      maxBodyLength: Infinity,
-      url: `https://${domain}/api/v2/roles`,
+    const config = { // Request config to fetch the roles from Auth0
+      method: "get", // Method
+      maxBodyLength: Infinity, // Max body length
+      url: `https://${domain}/api/v2/roles`, // URL
       headers: {
-        Accept: "application/json",
-        Authorization: `Bearer ${accessToken}`,
+        Accept: "application/json", // Accept
+        Authorization: `Bearer ${accessToken}`, // Authorization
       },
     };
 
-    const rolesResponse = await axios.request(config);
+    const rolesResponse = await axios.request(config); // Fetch the roles from Auth0
 
     if (!rolesResponse.data || !Array.isArray(rolesResponse.data)) {
       throw new Error(
@@ -35,9 +35,9 @@ export async function getAuthRoles(
       );
     }
 
-    return { authRoles: rolesResponse.data };
+    return { authRoles: rolesResponse.data }; // Return the roles from Auth0
   } catch (error) {
-    console.error("Error fetching roles:", error);
-    return { error: "Error fetching roles" };
+    console.error("Error fetching roles:", error); // Log the error
+    return { error: "Error fetching roles" }; // Return the error
   }
 }

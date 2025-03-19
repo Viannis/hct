@@ -6,10 +6,14 @@ import { Layout, Menu, Button, notification } from "antd";
 import axios from "axios";
 import type { NotificationArgsProps } from "antd";
 
+// This component handles the home page rendering, user authentication, and navigation based on user roles.
+
 type NotificationPlacement = NotificationArgsProps["placement"];
 type NotificationType = "success" | "info" | "warning" | "error";
 
 const { Header } = Layout;
+
+// The Header component from Ant Design is used to create a navigation bar at the top of the page.
 
 export default function Home() {
   console.log("Rendering Home page");
@@ -43,6 +47,8 @@ export default function Home() {
       setNotificationConfig(null); // Reset notification config after showing the notification
     }
   }, [notificationConfig, api]);
+
+  // This effect handles displaying notifications to the user based on the notification configuration state.
 
   useEffect(() => {
     setButtonLoading(true);
@@ -103,6 +109,8 @@ export default function Home() {
     checkAccountSetupStatus();
   }, [isLoading, user]);
 
+  // This effect checks the user's account setup status and role, setting the appropriate state for navigation.
+
   const renderButton = () => {
     console.log("User:", user);
     console.log("Role:", role);
@@ -143,6 +151,8 @@ export default function Home() {
       </Button>
     );
   };
+
+  // Renders the appropriate button based on the user's authentication and role status.
 
   return (
     <>
