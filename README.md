@@ -101,6 +101,23 @@ This application is designed for healthcare organizations to manage and track th
 - **View all careworkers and their shifts**: Manager can view all the carworker details and their shifts.
 - **Update location**: Manager can update the existing location. No more than one location can be there even if multiple managers are present.
 
+## App Screenshots
+**Manager Dashboard**
+
+![Image](https://github.com/user-attachments/assets/96676fff-7200-475e-bf19-7729f9917133)
+
+**Caretaker Dashboard**
+
+![Image](https://github.com/user-attachments/assets/e0fcb0b6-44d8-4265-bb3e-aee874315826)
+
+**Caretakers (Manager Dashboard)**
+
+![Image](https://github.com/user-attachments/assets/5235fd10-7b56-439f-8440-1c46d5e31f2b)
+
+**Location Settings (Manager Dashboard)**
+
+![Image](https://github.com/user-attachments/assets/2ab55988-e41b-470b-8da3-7096b58343d6)
+
 ## Setup and Installation
 
 1. Clone the repository.
