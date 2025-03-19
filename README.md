@@ -22,6 +22,10 @@ This application is designed for healthcare organizations to manage and track th
 - **Clock In/Out**: Clock in when entering the defined perimeter and clock out when already clocked in. Optional notes can be provided.
 - **Location Restriction**: Receive notifications if attempting to clock in outside the perimeter.
 
+## Actions
+- **Update Location**: Signup as a Manager => dashboard/settings/location => click update => search for new location (suggestions allowed for US, UK and IND), change radius if needed => save
+- **Clock in & out**: If the location set form the manager role is in nearest proximity, then by allowing location permission, you will be able to clockin. If already clocked in, you will be able to clockout.
+
 ## Technologies Used
 
 - **Frontend**:
