@@ -88,7 +88,7 @@ export default function Stats() {
     if (hoursLast7Days) {
       return (
         <Row gutter={[16, 16]}>
-          <Col span={8}>
+          <Col xs={24} sm={24} md={12} lg={8}>
             <Card title="Average Hours Last Week">
               <TitleText level={2}>{avgHours}h</TitleText>
             </Card>
@@ -96,7 +96,7 @@ export default function Stats() {
               <TitleText level={2}>{totalHours}h</TitleText>
             </Card>
           </Col>
-          <Col span={16}>
+          <Col xs={24} sm={24} md={12} lg={16}>
             <Card title="Hours Worked Last 7 Days" style={{ height: "100%" }}>
               <Line // Line chart for the hours worked last 7 days
                 data={chartData}

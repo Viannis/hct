@@ -6,7 +6,8 @@ import {
   Table,
   Button,
   Modal,
-  Flex,
+  Row,
+  Col,
   notification,
   Skeleton,
   Select,
@@ -380,53 +381,64 @@ const Shifts = () => {
       // If the user can clock in or needs to clock out
       return (
         <>
-          <Flex
-            justify="space-between"
-            align="center"
-            style={{ marginBottom: 16 }}
-          >
-            <h1>Shifts</h1>
-            <Flex justify="flex-end" gap={12} align="center">
-              <Select
-                defaultValue={dateRange}
-                style={{ width: 120, marginRight: 12 }}
-                onChange={handleDateRangeSelect}
-              >
-                <Option value="1 week">1 Week</Option>
-                <Option value="1 month">1 Month</Option>
-                <Option value="6 months">6 Months</Option>
-              </Select>
-              <Input
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="Add a note (optional)"
-                style={{ maxWidth: 300 }}
-              />
-              {canClockIn ? ( // Render clock in or clock out button based on the shift data
-                <Button
-                  type="primary"
-                  onClick={clockIn}
-                  loading={loading.clockInOut}
-                >
-                  Clock In
-                </Button>
-              ) : (
-                <Button
-                  type="primary"
-                  onClick={clockOut}
-                  loading={loading.clockInOut}
-                >
-                  Clock Out
-                </Button>
-              )}
-            </Flex>
-          </Flex>
+          <Row gutter={[16, 16]} align="top" style={{ marginBottom: 16 }}>
+            <Col xs={24} sm={12}>
+              <h1>Shifts</h1>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Row justify="end" gutter={[12, 12]} align="top">
+                <Col>
+                  <Select
+                    defaultValue={dateRange}
+                    style={{ width: "100%" }}
+                    onChange={handleDateRangeSelect}
+                  >
+                    <Option value="1 week">1 Week</Option>
+                    <Option value="1 month">1 Month</Option>
+                    <Option value="6 months">6 Months</Option>
+                  </Select>
+                </Col>
+                <Col>
+                  <Row justify="end" gutter={[12, 12]} align="middle">
+                    <Col>
+                      <Input
+                        value={note}
+                        onChange={(e) => setNote(e.target.value)}
+                        placeholder="Add a note (optional)"
+                        style={{ maxWidth: 300 }}
+                      />
+                    </Col>
+                    <Col>
+                      {canClockIn ? (
+                        <Button
+                          type="primary"
+                          onClick={clockIn}
+                          loading={loading.clockInOut}
+                        >
+                          Clock In
+                        </Button>
+                      ) : (
+                        <Button
+                          type="primary"
+                          onClick={clockOut}
+                          loading={loading.clockInOut}
+                        >
+                          Clock Out
+                        </Button>
+                      )}
+                    </Col>
+                  </Row>
+                </Col>
+              </Row>
+            </Col>
+          </Row>
           <Table
             columns={columns}
             loading={shiftRefetching}
             dataSource={isAddingShift ? [placeholderShift, ...shifts] : shifts} // Render the shifts data with loading state row
             rowKey="id"
             pagination={{ pageSize: 10 }}
+            scroll={{ x: "max-content" }}
           />
         </>
       );

@@ -35,8 +35,17 @@ const SettingsLayout: React.FC<SettingsLayoutProps> = ({ children }) => {
 
   return (
     <div>
-      <div style={{ textAlign: "left", padding: "16px" }}>
-        <h1>Settings</h1>
+      <div style={{ textAlign: "left" }}>
+        <div
+          style={{
+            padding: 0,
+            fontSize: 32,
+            fontWeight: 600,
+            marginBottom: 16,
+          }}
+        >
+          Settings
+        </div>
       </div>
       <Tabs // Tabs for the settings page
         activeKey={getActiveKey()}

@@ -4,11 +4,14 @@ import {
   HomeOutlined,
   TeamOutlined,
   SettingOutlined,
+  MenuOutlined,
   LogoutOutlined,
 } from "@ant-design/icons";
 import { usePathname, useRouter } from "next/navigation";
-import { Menu, Layout, Button, notification } from "antd";
+import Image from "next/image";
+import { Menu, Layout, Button, notification, Drawer } from "antd";
 import Link from "next/link";
+import logo from "@/app/logo.png";
 import { useState, useEffect } from "react";
 import type { NotificationArgsProps } from "antd";
 import { UserLocationProvider } from "./manager/context/UserLocationContext";
@@ -35,6 +38,10 @@ export default function DashboardLayout({
     autoCloseDuration: number;
   } | null>(null);
   const [api, contextHolder] = notification.useNotification();
+  const [visible, setVisible] = useState(false);
+  const toggleSidebar = () => {
+    setVisible(!visible);
+  };
 
   useEffect(() => {
     if (notificationConfig) {
@@ -133,9 +140,7 @@ export default function DashboardLayout({
         <Sider // Sider component for the sidebar
           theme="light"
           breakpoint="lg"
-          onBreakpoint={(broken) => {
-            console.log(broken);
-          }}
+          collapsedWidth={0}
           collapsed={collapsed}
           onCollapse={(value) => setCollapsed(value)}
           style={{
@@ -143,19 +148,31 @@ export default function DashboardLayout({
             height: "100vh",
             position: "fixed",
             width: "20%",
-            maxWidth: 256,
             left: 0,
             borderRight: "1px solid #f0f0f0",
           }}
         >
           <div
             style={{
-              height: 32,
-              margin: 16,
-              background: "#1890ff",
-              borderRadius: 4,
+              width: "100%",
+              display: "flex",
+              justifyContent: "flex-start",
+              marginBottom: 8,
+              marginTop: 8,
+              paddingLeft: 16,
+              paddingTop: 4,
+              paddingBottom: 4,
             }}
-          />
+          >
+            <Image
+              src={logo}
+              alt="1HCT Logo"
+              style={{
+                height: "auto",
+                width: "96px",
+              }}
+            />
+          </div>
           <Menu
             mode="inline"
             selectedKeys={routeCheckForKey()}
@@ -167,8 +184,47 @@ export default function DashboardLayout({
           />
         </Sider>
         <Layout // Layout component for the main content to be rendered based on the pathname
-          style={{ marginLeft: collapsed ? 79 : 200, background: "#fff" }}
+          style={{ marginLeft: collapsed ? 0 : 200, background: "#fff" }}
         >
+          <Button
+            type="primary"
+            icon={<MenuOutlined />}
+            className="menu-button"
+            onClick={toggleSidebar}
+            style={{
+              position: "fixed",
+              top: 16,
+              left: 0,
+              borderTopLeftRadius: 0,
+              borderBottomLeftRadius: 0,
+              zIndex: 1000,
+            }}
+          />
+
+          <Drawer
+            title="Menu"
+            placement="left"
+            closable={true}
+            onClose={toggleSidebar}
+            open={visible}
+            style={{ maxWidth: 200, boxShadow: "none" }}
+            styles={{
+              body: { padding: 10, border: "none" },
+              header: { paddingLeft: 24, paddingTop: 24, paddingBottom: 16 },
+              content: { padding: 0, boxShadow: "none" },
+              wrapper: { boxShadow: "none" },
+            }}
+          >
+            <Menu
+              mode="inline"
+              selectedKeys={routeCheckForKey()}
+              items={
+                pathname.startsWith("/dashboard/manager")
+                  ? managerMenuItems
+                  : careTakerMenuItems
+              }
+            />
+          </Drawer>
           <Content style={{ margin: "24px 16px", padding: 24 }}>
             <UserLocationProvider>
               {" "}

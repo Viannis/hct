@@ -1,20 +1,16 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useQuery } from "@apollo/client";
-import { GET_ALL_SHIFTS, GET_HOURS_PER_DATE_RANGE } from "@utils/queries";
 import { useUserLocation } from "./context/UserLocationContext";
 import {
-  Card,
-  Row,
-  Col,
   Table,
   Switch,
   Flex,
   Modal,
-  Typography,
   Button,
   Skeleton,
+  Row,
+  Col,
   Select,
   notification,
 } from "antd";
@@ -29,7 +25,6 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
-import { Line } from "react-chartjs-2";
 import moment from "moment";
 import jsPDF from "jspdf";
 import { Parser } from "json2csv";
@@ -44,33 +39,11 @@ ChartJS.register(
   Tooltip,
   Legend
 );
-
-type DailyTotal = {
-  date: string;
-  hours: number;
-};
-
-type UserDailyHours = {
-  userId: string;
-  userName: string;
-  dailyTotals: DailyTotal[];
-};
-
-const { Title: TitleText } = Typography;
-type Shift = {
-  id: string;
-  user: {
-    id: string;
-    name: string;
-  };
-  clockIn: Date;
-  clockOut: Date;
-  clockInNote: string;
-  clockOutNote: string;
-};
+import Stats from "./components/Stats";
 
 type TableShift = {
   id: string;
+  uniqueId: string;
   userId: string;
   clockIn: Date;
   clockOut: Date | null;
@@ -82,156 +55,59 @@ type TableShift = {
 const { Option } = Select;
 
 export default function ManagerDashboard() {
-  const { user } = useUserLocation();
-  const startDate = new Date();
-  startDate.setHours(0, 0, 0, 0);
-  const endDate = new Date();
-  endDate.setHours(23, 59, 59, 999);
-  const {
-    data: shiftsData,
-    loading: shiftsLoading,
-    error: shiftsError,
-    refetch: refetchAllShifts,
-  } = useQuery(GET_ALL_SHIFTS, {
-    // Fetch all shifts for all the caretakers
-    skip: !user,
-  });
-  const {
-    data: hoursPerDateRangeData,
-    loading: hoursPerDateRangeLoading,
-    error: hoursPerDateRangeError,
-  } = useQuery(GET_HOURS_PER_DATE_RANGE, {
-    // Fetch the hours worked per date range for all the caretakers
-    variables: {
-      dateRange: {
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-      },
-    },
-    skip: !user,
-  });
+  const { shiftsData, loading, error, handleDateRangeChange } =
+    useUserLocation();
   const [activeShifts, setActiveShifts] = useState<TableShift[]>([]);
   const [shiftsRefetching, setShiftsRefetching] = useState(false);
+  const [shiftsLoading, setShiftsLoading] = useState(true);
+  const [shiftsError, setShiftsError] = useState(false);
   const [tableIsActive, setTableIsActive] = useState(true);
   const [completedShifts, setCompletedShifts] = useState<TableShift[]>([]);
-  const [shiftsCompletedCount, setShiftsCompletedCount] = useState(0);
-  const [activeShiftsCount, setActiveShiftsCount] = useState(0);
   const [dateRange, setDateRange] = useState("Today"); // State for date range
   const previousDateRange = useRef(dateRange);
-  const [chartData, setChartData] = useState({
-    labels: ["", "", "", "", "", "", ""],
-    datasets: [
-      {
-        label: "Hours Worked",
-        data: [0, 0, 0, 0, 0, 0, 0],
-        tension: 0.1,
-      },
-    ],
-    options: {
-      plugins: {
-        colors: {
-          enabled: true,
-        },
-      },
-    },
-  });
-
   const [previewData, setPreviewData] = useState<TableShift[]>([]);
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
 
   useEffect(() => {
-    if (shiftsError) {
-      console.error("Error fetching shifts:", shiftsError);
-    }
-    if (!shiftsLoading && shiftsData?.allShifts) {
+    if (!loading.shifts && shiftsData?.allShifts) {
       console.log("Shifts today:", shiftsData.allShifts);
       const active = shiftsData.allShifts.filter(
         // Filter the shifts to get the active shifts
-        (shift: Shift) => !shift.clockOut
+        (shift) => !shift.clockOut
       );
       const completed = shiftsData.allShifts.filter(
         // Filter the shifts to get the completed shifts
-        (shift: Shift) => shift.clockOut
+        (shift) => shift.clockOut
       );
-      const activeShiftData: TableShift[] = active.map((shift: Shift) => ({
+      const activeShiftData: TableShift[] = active.map((shift) => ({
         id: shift.id,
         userId: shift.user.id,
         clockIn: shift.clockIn,
+        clockOut: shift.clockOut,
         clockInNote: shift.clockInNote,
+        clockOutNote: shift.clockOutNote,
         userName: shift.user.name,
         uniqueId: `${shift.id}-${shift.clockIn}`, // Generate uniqueId once to avoid duplicate keys when eport preview table is rendered in a modal over the same the table rendered in the page
       }));
-      const completedShiftData: TableShift[] = completed.map(
-        (shift: Shift) => ({
-          id: shift.id,
-          userId: shift.user.id,
-          clockIn: shift.clockIn,
-          clockOut: shift.clockOut,
-          clockOutNote: shift.clockOutNote,
-          userName: shift.user.name,
-          uniqueId: `${shift.id}-${shift.clockIn}`, // Generate uniqueId once
-        })
-      );
+      const completedShiftData: TableShift[] = completed.map((shift) => ({
+        id: shift.id,
+        userId: shift.user.id,
+        clockIn: shift.clockIn,
+        clockOut: shift.clockOut,
+        clockInNote: shift.clockInNote,
+        clockOutNote: shift.clockOutNote,
+        userName: shift.user.name,
+        uniqueId: `${shift.id}-${shift.clockIn}`, // Generate uniqueId once
+      }));
+      setShiftsLoading(false);
       setActiveShifts(activeShiftData);
       setCompletedShifts(completedShiftData);
-      setActiveShiftsCount(active.length);
-      setShiftsCompletedCount(completed.length);
     }
-  }, [shiftsError, shiftsLoading, shiftsData, user]);
-
-  useEffect(() => {
-    if (hoursPerDateRangeError) {
-      console.error(
-        "Error fetching hours per date range:",
-        hoursPerDateRangeError
-      );
+    if (error.shifts) {
+      console.error("Error fetching shifts:", error.shifts);
+      setShiftsError(true);
     }
-    if (!hoursPerDateRangeLoading && hoursPerDateRangeData?.hoursPerDateRange) {
-      console.log("Hours per date range:", hoursPerDateRangeData);
-
-      const labels: string[] = [];
-      const dataSets: {
-        label: string;
-        data: number[];
-        tension: number;
-      }[] = [];
-
-      hoursPerDateRangeData.hoursPerDateRange.forEach(
-        // logic for structing the data from db to be used for the chart
-        (user: UserDailyHours) => {
-          const userHours = user.dailyTotals.map((daily: DailyTotal) => {
-            if (!labels.includes(daily.date)) {
-              labels.push(daily.date);
-            }
-            return daily.hours;
-          });
-
-          dataSets.push({
-            label: user.userName,
-            data: userHours,
-            tension: 0.1,
-          });
-        }
-      );
-
-      setChartData({
-        labels,
-        datasets: dataSets,
-        options: {
-          plugins: {
-            colors: {
-              enabled: true,
-            },
-          },
-        },
-      });
-    }
-  }, [
-    hoursPerDateRangeError,
-    hoursPerDateRangeLoading,
-    hoursPerDateRangeData,
-    user,
-  ]);
+  }, [error.shifts, loading.shifts, shiftsData]);
 
   const handleDateRangeSelect = (value: string) => {
     // Handle the date range select
@@ -258,13 +134,7 @@ export default function ManagerDashboard() {
         break;
     }
 
-    refetchAllShifts({
-      // Refetch the shifts data from the database
-      variables: {
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-      },
-    })
+    handleDateRangeChange(startDate, endDate)
       .then(() => {
         setShiftsRefetching(false);
         previousDateRange.current = value;
@@ -450,6 +320,7 @@ export default function ManagerDashboard() {
         clockInNote: "",
         clockOutNote: "",
         userName: "...", // Placeholder for the dummy row
+        uniqueId: "",
       });
     }
 
@@ -510,31 +381,7 @@ export default function ManagerDashboard() {
     } else if (shiftsData?.allShifts) {
       return (
         <div>
-          <Row gutter={[16, 16]}>
-            <Col span={8}>
-              <Card title="Shifts Completed">
-                <TitleText level={2}>{shiftsCompletedCount}h</TitleText>
-              </Card>
-              <Card title="Active Shifts" style={{ marginTop: 16 }}>
-                <TitleText level={2}>{activeShiftsCount}</TitleText>
-              </Card>
-            </Col>
-            <Col span={16}>
-              <Card title="Hours Worked Today" style={{ height: "100%" }}>
-                <Line // Multiline chart for cmparing caretakers hours worked every day over a date range
-                  data={chartData}
-                  options={{
-                    maintainAspectRatio: false,
-                    scales: {
-                      y: { grid: { display: false } },
-                      x: { grid: { display: false } },
-                    },
-                    responsive: true,
-                  }}
-                />
-              </Card>
-            </Col>
-          </Row>
+          <Stats />
           <div
             style={{
               marginTop: 48,
@@ -542,29 +389,41 @@ export default function ManagerDashboard() {
               borderTop: "1px solid #f0f0f0",
             }}
           >
-            <Flex justify="space-between" align="center">
-              <Flex gap={12}>
-                <h2>{tableIsActive ? "Active Shifts" : "Completed Shifts"}</h2>
-                <Switch defaultChecked onChange={setTableIsActive} />{" "}
-                {/* Switch for toggling between active and completed shifts */}
-              </Flex>
-              <Flex>
-                <Select // Select for the date range for the table
-                  defaultValue={dateRange}
-                  style={{ width: 120, marginRight: 12 }}
-                  onChange={handleDateRangeSelect}
-                >
-                  <Option value="Today">Today</Option>
-                  <Option value="1 week">1 Week</Option>
-                  <Option value="1 month">1 Month</Option>
-                  <Option value="3 months">3 Months</Option>
-                </Select>
-
-                <Button type="primary" onClick={() => handleExportPreview()}>
-                  Export
-                </Button>
-              </Flex>
-            </Flex>
+            <Row gutter={[16, 16]} justify="space-between" align="top">
+              <Col xs={24} sm={12}>
+                <Flex gap={12}>
+                  <h2>
+                    {tableIsActive ? "Active Shifts" : "Completed Shifts"}
+                  </h2>
+                  <Switch defaultChecked onChange={setTableIsActive} />{" "}
+                  {/* Switch for toggling between active and completed shifts */}
+                </Flex>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Row justify="end" gutter={[12, 12]} align="top">
+                  <Col>
+                    <Select // Select for the date range for the table
+                      defaultValue={dateRange}
+                      style={{ width: 120, marginRight: 12 }}
+                      onChange={handleDateRangeSelect}
+                    >
+                      <Option value="Today">Today</Option>
+                      <Option value="1 week">1 Week</Option>
+                      <Option value="1 month">1 Month</Option>
+                      <Option value="3 months">3 Months</Option>
+                    </Select>
+                  </Col>
+                  <Col>
+                    <Button
+                      type="primary"
+                      onClick={() => handleExportPreview()}
+                    >
+                      Export
+                    </Button>
+                  </Col>
+                </Row>
+              </Col>
+            </Row>
             {tableIsActive ? ( // Render the active shifts table
               <Table
                 columns={columnsActive}
@@ -572,6 +431,7 @@ export default function ManagerDashboard() {
                 loading={shiftsRefetching}
                 rowKey={(record) => record.id}
                 style={{ marginTop: 24 }}
+                scroll={{ x: "max-content" }}
               />
             ) : (
               // Render the completed shifts table
@@ -581,6 +441,7 @@ export default function ManagerDashboard() {
                 loading={shiftsRefetching}
                 rowKey={(record) => record.id}
                 style={{ marginTop: 24 }}
+                scroll={{ x: "max-content" }}
               />
             )}
           </div>

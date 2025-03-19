@@ -63,3 +63,15 @@ a {
     color-scheme: dark;
   }
 }
+
+@media (max-width: 992px) {
+  .menu-button {
+    display: block;
+  }
+}
+
+@media (min-width: 992px) {
+  .menu-button {
+    display: none;
+  }
+}

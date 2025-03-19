@@ -87,7 +87,8 @@ export const ShiftsProvider = ({ children }: { children: React.ReactNode }) => {
     location: false,
   });
 
-  const { // Get the shifts data from the database
+  const {
+    // Get the shifts data from the database
     data: shiftsData,
     error: shiftsError,
     refetch: refetchShifts,
@@ -103,7 +104,8 @@ export const ShiftsProvider = ({ children }: { children: React.ReactNode }) => {
     },
   });
 
-  const { data: hoursData, refetch: refetchHours } = useQuery( // Get total hours worked across all the shifts for each day
+  const { data: hoursData, refetch: refetchHours } = useQuery(
+    // Get total hours worked across all the shifts for each day
     GET_HOURS_LAST_7_DAYS,
     {
       onCompleted: () => setLoading((prev) => ({ ...prev, hours: false })),
@@ -114,16 +116,24 @@ export const ShiftsProvider = ({ children }: { children: React.ReactNode }) => {
     }
   );
 
-  const { data: locationData } = useQuery(GET_LOCATION, { // Get the location data from the database
-    onCompleted: () => setLoading((prev) => ({ ...prev, location: false })),
-    onError: (error) => {
-      console.log("Error fetching location", error);
-      setError((prev) => ({ ...prev, location: true }));
-    },
-  });
+  const { data: locationData, loading: locationLoading } = useQuery(
+    GET_LOCATION,
+    {
+      // Get the location data from the database
+      onCompleted: () => {
+        console.log("Location fetched");
+      },
+      onError: (error) => {
+        console.log("Error fetching location", error);
+        setError((prev) => ({ ...prev, location: true }));
+      },
+    }
+  );
 
-  const [clockInMutation] = useMutation(CLOCK_IN, { // Clock in a shift (graphQL Mutation)
-    update(cache, { data: { clockIn } }) { // Update the cache for faster rendering compared to refetching the data from the database
+  const [clockInMutation] = useMutation(CLOCK_IN, {
+    // Clock in a shift (graphQL Mutation)
+    update(cache, { data: { clockIn } }) {
+      // Update the cache for faster rendering compared to refetching the data from the database
       console.log("Clocked in mutation update cache triggered");
       console.log("ClockIn data:", clockIn);
 
@@ -131,7 +141,7 @@ export const ShiftsProvider = ({ children }: { children: React.ReactNode }) => {
         query: GET_SHIFTS,
         variables: {
           userId: user?.sub,
-          dateRange: undefined, 
+          dateRange: undefined,
         },
       }) as { shifts: Shift[] };
 
@@ -169,7 +179,8 @@ export const ShiftsProvider = ({ children }: { children: React.ReactNode }) => {
     },
   });
 
-  const [clockOutMutation] = useMutation(CLOCK_OUT, { // Clock out a shift (graphQL Mutation)
+  const [clockOutMutation] = useMutation(CLOCK_OUT, {
+    // Clock out a shift (graphQL Mutation)
     onCompleted: () => {
       refetchShifts(); // Refetch the shifts data from the database
       refetchHours(); // Refetch the hours data from the database
@@ -193,7 +204,7 @@ export const ShiftsProvider = ({ children }: { children: React.ReactNode }) => {
       setHoursLast7Days(hoursData.hoursLast7Days);
       setLoading((prev) => ({ ...prev, hoursLast7Days: false }));
     }
-    if (locationData) {
+    if (!locationLoading && locationData) {
       setLocation(locationData.location);
       setLoading((prev) => ({ ...prev, location: false }));
     }
@@ -209,6 +220,7 @@ export const ShiftsProvider = ({ children }: { children: React.ReactNode }) => {
     locationData,
     userError,
     userLoading,
+    locationLoading,
     shiftsError,
   ]); // Set the shifts, hours, location, user, and loading states
 
@@ -260,7 +272,8 @@ export const ShiftsProvider = ({ children }: { children: React.ReactNode }) => {
     [refetchShifts, user?.sub]
   ); // Handle the date range change where Shifts of the caretaker will be fetched based on the date range
 
-  const value = useMemo( // Provide the context value to the children
+  const value = useMemo(
+    // Provide the context value to the children
     () => ({
       shifts,
       hoursLast7Days,
@@ -292,7 +305,8 @@ export const ShiftsProvider = ({ children }: { children: React.ReactNode }) => {
 
 export const useShifts = () => {
   const context = useContext(ShiftsContext);
-  if (!context) { // If the context is not found, throw an error
+  if (!context) {
+    // If the context is not found, throw an error
     throw new Error("useShifts must be used within a ShiftsProvider");
   }
   return context; // Return the context

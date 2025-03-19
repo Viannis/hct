@@ -9,17 +9,19 @@ import React, {
 import { useQuery, useMutation } from "@apollo/client";
 import { useUser, UserProfile } from "@auth0/nextjs-auth0/client";
 import { Location } from "@prisma/client";
-import { GET_LOCATION } from "@utils/queries";
+import { GET_LOCATION, GET_ALL_SHIFTS } from "@utils/queries";
 import { CREATE_LOCATION, UPDATE_LOCATION } from "@utils/mutations";
 
 type Error = {
   location: string;
   user: string;
+  shifts: string;
 };
 
 type Loading = {
   location: boolean;
   user: boolean;
+  shifts: boolean;
 };
 
 interface UserLocationContextType {
@@ -29,6 +31,19 @@ interface UserLocationContextType {
   error: Error;
   createLocation: (location: Location) => void;
   updateLocation: (location: Location) => void;
+  handleDateRangeChange: (startDate: Date, endDate: Date) => Promise<void>;
+  shiftsData:
+    | {
+        allShifts: Array<{
+          id: string;
+          clockIn: Date;
+          clockOut: Date | null;
+          clockInNote: string;
+          clockOutNote: string;
+          user: { id: string; name: string };
+        }>;
+      }
+    | undefined;
 }
 
 const UserLocationContext = createContext<UserLocationContextType | null>(null);
@@ -41,10 +56,12 @@ export const UserLocationProvider = ({
   const [loading, setLoading] = useState<Loading>({
     location: true,
     user: true,
+    shifts: true,
   });
   const [error, setError] = useState<Error>({
     location: "",
     user: "",
+    shifts: "",
   });
   const [location, setLocation] = useState<Location | null>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -53,7 +70,11 @@ export const UserLocationProvider = ({
     error: userError,
     isLoading: userLoading,
   } = useUser();
-  const { data } = useQuery(GET_LOCATION, {
+  const {
+    data,
+    loading: locationLoading,
+    error: locationError,
+  } = useQuery(GET_LOCATION, {
     skip: !sessionUser,
     onCompleted: () => setLoading((prev) => ({ ...prev, location: false })),
     onError: (error) => {
@@ -78,21 +99,52 @@ export const UserLocationProvider = ({
     },
   }); // Update the location in the database
 
+  const {
+    data: shiftsData,
+    error: shiftsError,
+    loading: shiftsLoading,
+    refetch: refetchAllShifts,
+  } = useQuery(GET_ALL_SHIFTS, {
+    skip: !sessionUser,
+  });
+
   useEffect(() => {
-    if (data) {
-      console.log("data", data);
-      setLocation(data.location);
-      setLoading((prev) => ({ ...prev, location: false }));
-    }
-    if (userError) {
-      setError((prev) => ({ ...prev, user: userError.message }));
-    }
     if (sessionUser && !userLoading) {
       console.log("session User", sessionUser);
       setUser(sessionUser);
       setLoading((prev) => ({ ...prev, user: false }));
     }
-  }, [data, userError, userLoading, sessionUser]); // Set the location and user in the state
+    if (userError) {
+      setError((prev) => ({ ...prev, user: userError.message }));
+    }
+    if (data && !locationLoading) {
+      console.log("data", data);
+      setLocation(data.location);
+      setLoading((prev) => ({ ...prev, location: false }));
+    }
+    if (locationError) {
+      console.error("Error fetching location:", locationError);
+      setError((prev) => ({ ...prev, location: locationError.message }));
+    }
+    if (shiftsData && !shiftsLoading) {
+      console.log("shiftsData", shiftsData);
+      setLoading((prev) => ({ ...prev, shifts: false }));
+    }
+    if (shiftsError) {
+      console.error("Error fetching shifts:", shiftsError);
+      setError((prev) => ({ ...prev, shifts: shiftsError.message }));
+    }
+  }, [
+    data,
+    userError,
+    userLoading,
+    sessionUser,
+    shiftsError,
+    shiftsData,
+    shiftsLoading,
+    locationLoading,
+    locationError,
+  ]); // Set the location and user in the state
 
   const createLocation = useCallback(
     (location: Location) =>
@@ -106,9 +158,46 @@ export const UserLocationProvider = ({
     [updateLocationMutation]
   ); // Update the location in the database
 
+  const handleDateRangeChange = useCallback(
+    (startDate: Date, endDate: Date) => {
+      return refetchAllShifts({
+        variables: {
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString(),
+        },
+      })
+        .then(() => {
+          console.log("Shifts refetched");
+        })
+        .catch((error) => {
+          console.error("Error fetching shifts:", error);
+          throw error;
+        });
+    },
+    [refetchAllShifts]
+  );
+
   const value = useMemo(
-    () => ({ location, loading, error, createLocation, updateLocation, user }),
-    [location, loading, error, createLocation, updateLocation, user]
+    () => ({
+      location,
+      loading,
+      error,
+      createLocation,
+      updateLocation,
+      user,
+      handleDateRangeChange,
+      shiftsData,
+    }),
+    [
+      location,
+      loading,
+      error,
+      createLocation,
+      updateLocation,
+      user,
+      shiftsData,
+      handleDateRangeChange,
+    ]
   ); // Create the value for the context
 
   return (

@@ -3,12 +3,14 @@ import { getSession, updateSession } from "@auth0/nextjs-auth0/edge";
 import { Session } from "@auth0/nextjs-auth0";
 import axios from "axios";
 
-export async function middleware(req: NextRequest) { // Middleware function to check if the user is authenticated and has the correct role
+export async function middleware(req: NextRequest) {
+  // Middleware function to check if the user is authenticated and has the correct role
   const res = NextResponse.next(); // Next response
   console.log("Middleware called"); // Log the middleware called
   console.log("Request URL", req.nextUrl.pathname); // Log the request URL
 
-  if ( // If the route is an auth route, onboarding route, home page route, or error pages route
+  if (
+    // If the route is an auth route, onboarding route, home page route, or error pages route
     isAuthRoute(req) ||
     isOnboardingRoute(req) ||
     isHomePageRoute(req) ||
@@ -18,7 +20,8 @@ export async function middleware(req: NextRequest) { // Middleware function to c
     return res;
   }
 
-  if ( // If the route is a manager dashboard route or a caretaker dashboard route
+  if (
+    // If the route is a manager dashboard route or a caretaker dashboard route
     isManagerDashboardRoute(req) ||
     isCaretakerDashboardRoute(req)
   ) {
@@ -107,8 +110,9 @@ async function handleNoRoles(
   const clientId = process.env.AUTH0_CLIENT_ID; // Get the client ID
   const clientSecret = process.env.AUTH0_CLIENT_SECRET; // Get the client secret
 
-  if (!domain || !clientId || !clientSecret) { // If the domain, client ID, or client secret is not found
-     console.log(
+  if (!domain || !clientId || !clientSecret) {
+    // If the domain, client ID, or client secret is not found
+    console.log(
       "Missing Auth0 environment variables, redirecting to onboarding",
       domain,
       clientId,
@@ -120,7 +124,8 @@ async function handleNoRoles(
 
   console.log("Getting management API token"); // Log the getting management API token
   try {
-    const tokenResponse = await axios.post(`https://${domain}/oauth/token`, { // Post request to get the management API token
+    const tokenResponse = await axios.post(`https://${domain}/oauth/token`, {
+      // Post request to get the management API token
       client_id: clientId, // Client ID
       client_secret: clientSecret, // Client secret
       audience: `https://${domain}/api/v2/`, // Audience
@@ -129,7 +134,8 @@ async function handleNoRoles(
 
     const accessToken = tokenResponse.data.access_token; // Get the access token
 
-    const rolesResponse = await axios.get( // Get the roles from the management API
+    const rolesResponse = await axios.get(
+      // Get the roles from the management API
       `https://${domain}/api/v2/users/${session.user.sub}/roles`, // URL
       {
         headers: {
@@ -141,7 +147,8 @@ async function handleNoRoles(
     const firstRole = rolesResponse.data[0]?.name; // Get the first role
     if (firstRole) {
       console.log("Role found:", firstRole); // Log the role found
-      if (firstRole !== "MANAGER" && firstRole !== "CARETAKER") { // If the role is not a manager or a caretaker
+      if (firstRole !== "MANAGER" && firstRole !== "CARETAKER") {
+        // If the role is not a manager or a caretaker
         console.log("Unauthorized roles found for user in Auth0"); // Log the unauthorized roles found for user in Auth0
         return NextResponse.redirect(new URL("/error/401", req.nextUrl.origin)); // Redirect to the error page if the role is unauthorized
       }
@@ -156,10 +163,12 @@ async function handleNoRoles(
       });
 
       // Redirect based on role
-      if (firstRole === "MANAGER" && isManagerDashboardRoute(req)) { // If the role is a manager and the route is a manager dashboard route
+      if (firstRole === "MANAGER" && isManagerDashboardRoute(req)) {
+        // If the role is a manager and the route is a manager dashboard route
         return res; // Return the response
       }
-      if (firstRole === "CARETAKER" && isCaretakerDashboardRoute(req)) { // If the role is a caretaker and the route is a caretaker dashboard route
+      if (firstRole === "CARETAKER" && isCaretakerDashboardRoute(req)) {
+        // If the role is a caretaker and the route is a caretaker dashboard route
         return res; // Return the response
       }
     } else {
