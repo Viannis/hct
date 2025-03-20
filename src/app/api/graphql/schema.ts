@@ -63,6 +63,7 @@ const typeDefs = gql`
   }
 
   type Query {
+    me: User
     user(userId: ID): User
     location: Location
     caretakers: [CareTaker!]

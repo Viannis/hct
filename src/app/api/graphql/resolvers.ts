@@ -62,6 +62,21 @@ const errorResponse = (status: number): ErrorResponse => {
 
 export const resolvers = {
   Query: {
+    me: async (_: unknown, __: unknown, context: Context) => {
+      const { user } = context;
+
+      if (!user?.sub) {
+        const error = errorResponse(401);
+        throw new GraphQLError(error.message, { extensions: error.extensions });
+      }
+
+      const currentUser = await prisma.user.findUnique({
+        where: { auth0Id: user.sub },
+      });
+
+      return currentUser;
+    },
+
     user: async (
       // Get the user by ID
       _: unknown,
