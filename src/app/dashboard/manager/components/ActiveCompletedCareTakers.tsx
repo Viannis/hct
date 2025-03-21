@@ -29,6 +29,7 @@ import moment from "moment";
 import jsPDF from "jspdf";
 import { Parser } from "json2csv";
 import PDFPreviewExport from "./PDFPreviewExport";
+import { autoTable } from "jspdf-autotable";
 
 const { Option } = Select;
 type NotificationPlacement = NotificationArgsProps["placement"];
@@ -275,29 +276,17 @@ export default function ActiveCompletedCareTakers() {
     try {
       if (format === "PDF") {
         const doc = new jsPDF();
-        const pageSize = 5; // Number of rows per page
-        let y = 10;
 
-        previewData.forEach((shift, index) => {
-          if (index > 0 && index % pageSize === 0) {
-            // Add a new page if the number of rows is greater than the page size
-            doc.addPage();
-            y = 10;
-          }
-          doc.text(`Name: ${shift.userName}`, 10, y); // Add the name of the shift to the PDF
-          doc.text(
-            `Clock In: ${moment(shift.clockIn).format("YYYY-MM-DD HH:mm")}`,
-            10,
-            y + 10
-          );
-          if (shift.clockOut) {
-            doc.text(
-              `Clock Out: ${moment(shift.clockOut).format("YYYY-MM-DD HH:mm")}`,
-              10,
-              y + 20
-            );
-          }
-          y += 30;
+        autoTable(doc, {
+          head: [["Name", "Clock In Time", "Clock Out Time", "Clock Out Note"]],
+          body: previewData.map((shift) => [
+            shift.userName,
+            moment(shift.clockIn).format("YYYY-MM-DD HH:mm"),
+            shift.clockOut
+              ? moment(shift.clockOut).format("YYYY-MM-DD HH:mm")
+              : "",
+            shift.clockOutNote,
+          ]),
         });
 
         doc.save("shifts.pdf");
