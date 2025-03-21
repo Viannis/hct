@@ -64,7 +64,7 @@ This application is designed for healthcare organizations to manage and track th
 - **Session and JWT based authorization for API calls and requests**: Every request made by the user from the client end is autorized by app session stored in cookies (provided by Auth0.) Every server-side requests is validated by API accesstoken and session ID token for graphQL queries. ID tokens are validated by JWT.veriy()
 
 - **Location suggestion for managers**: With Places API from google, place address will be suggested as the manager types in the input field.
-- **Clock in baed on location range**: Caretakers will be asked for their current location permission and based on their location in coparison with the location range set by the manager, will be allowed to clockIn.
+- **Clock in baed on location range**: Caretakers will be asked for their current location permission and based on their location in comparison with the location range set by the manager, will be allowed to clockIn.
 - **View & filter shifts by date range**: Caretakers upon sucessful clock in can view the record being reflected in the table (Apollo cache) reflecting their details. Basic date range filter has been set for view more past records. For easy of viewing, clock in and out notes has been truncated and the full details can be viewed in a modal.
 - **Stats and visualisation**: Caretakers can view their average and total hours worked in their last week with line chart showing the trend of hours based on the date range selected for the table.
 - **Update Name**: A simple update name has been implemented.
@@ -77,7 +77,7 @@ This application is designed for healthcare organizations to manage and track th
 
 ## Folder Structure
 
-- **src/app**: Contains all the app router pages including Landing page "/", Onboarding "/onboarding", Manager dashboard "dashboard/manager", Caretaker dashboard "dashboard/caretaker".
+- **src/app**: Contains all the app router pages including Landing page with Onboarding "/", Manager dashboard "dashboard/manager", Caretaker dashboard "dashboard/caretaker".
   - **Home Page**: Renders Login/Go to Dashboard/Complete Account Setup options based on session and user details in the db.
   - **Onboarding**: Checks if user has onboarded already and if not, asks for a name and role to onboard the user. Upon form submit, user profile is created in the DB and role will be updated in Auth0.
   - **Manager Dashboard**: If location not set, prompts to set new location in the home page by default and upon setting a new location and radius for range, caretakers on the other end will be allowed to clockin. With populated caretaker data, charts and stats can be seen.
@@ -117,6 +117,18 @@ This application is designed for healthcare organizations to manage and track th
 **Location Settings (Manager Dashboard)**
 
 ![Image](https://github.com/user-attachments/assets/2ab55988-e41b-470b-8da3-7096b58343d6)
+
+**Default Landing Page (When No Session Found)**
+
+![Image](https://github.com/user-attachments/assets/978a8551-2ee8-440e-af7a-1fbfe5de99fe)
+
+**Onboarding State (Post User Registration)**
+
+![Image](https://github.com/user-attachments/assets/1556c26b-5308-4acf-bb3a-8b8a5ebef0ae)
+
+**Landing Page (When Session Found)**
+
+![Image](https://github.com/user-attachments/assets/907913cd-abdb-43a2-9f97-e52ba565a6dc)
 
 ## Setup and Installation
 
