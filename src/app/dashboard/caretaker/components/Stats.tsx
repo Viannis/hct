@@ -89,15 +89,21 @@ export default function Stats() {
       return (
         <Row gutter={[16, 16]}>
           <Col xs={24} sm={24} md={12} lg={8}>
-            <Card title="Average Hours Last Week">
+            <Card title="Average Hours">
               <TitleText level={2}>{avgHours}h</TitleText>
             </Card>
-            <Card title="Total Hours Last Week" style={{ marginTop: 16 }}>
+            <Card title="Total Hours" style={{ marginTop: 16 }}>
               <TitleText level={2}>{totalHours}h</TitleText>
             </Card>
           </Col>
           <Col xs={24} sm={24} md={12} lg={16}>
-            <Card title="Hours Worked Last 7 Days" style={{ height: "100%" }}>
+            <Card
+              title="Hours Worked"
+              style={{ height: "100%" }}
+              styles={{
+                body: { height: "80%", width: "100%" },
+              }}
+            >
               <Line // Line chart for the hours worked last 7 days
                 data={chartData}
                 options={{
@@ -107,6 +113,7 @@ export default function Stats() {
                     x: { grid: { display: false } },
                   },
                   responsive: true,
+                  aspectRatio: 1,
                 }}
               />
             </Card>

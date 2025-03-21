@@ -174,7 +174,16 @@ export default function Stats() {
         </Card>
       </Col>
       <Col xs={24} sm={24} md={12} lg={16}>
-        <Card title="Hours Worked" style={{ height: "100%" }}>
+        <Card
+          title="Hours Worked"
+          style={{ height: "100%" }}
+          styles={{
+            body: {
+              height: "80%",
+              width: "100%",
+            },
+          }}
+        >
           <Line
             data={chartData}
             options={{
@@ -184,6 +193,7 @@ export default function Stats() {
                 x: { grid: { display: false } },
               },
               responsive: true,
+              aspectRatio: 1,
             }}
           />
         </Card>
