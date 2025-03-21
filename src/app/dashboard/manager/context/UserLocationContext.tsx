@@ -30,6 +30,7 @@ type Error = {
   user: string;
   shifts: string;
   hoursPerDateRange: string;
+  hoursPerDateRangeRefetch: string;
 };
 
 type Loading = {
@@ -37,6 +38,7 @@ type Loading = {
   user: boolean;
   shifts: boolean;
   hoursPerDateRange: boolean;
+  hoursPerDateRangeRefetch: boolean;
 };
 
 interface UserLocationContextType {
@@ -87,12 +89,14 @@ export const UserLocationProvider = ({
     user: true,
     shifts: true,
     hoursPerDateRange: true,
+    hoursPerDateRangeRefetch: false,
   });
   const [error, setError] = useState<Error>({
     location: "",
     user: "",
     shifts: "",
     hoursPerDateRange: "",
+    hoursPerDateRangeRefetch: "",
   });
   const [location, setLocation] = useState<Location | null>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -229,6 +233,7 @@ export const UserLocationProvider = ({
 
   const handleDateRangeChange = useCallback(
     async (startDate: Date, endDate: Date) => {
+      setLoading((prev) => ({ ...prev, hoursPerDateRangeRefetch: true }));
       console.log("startDate", startDate);
       console.log("endDate", endDate);
       try {
@@ -245,8 +250,14 @@ export const UserLocationProvider = ({
             endDate: endDate.toISOString(),
           },
         });
+        setLoading((prev) => ({ ...prev, hoursPerDateRangeRefetch: false }));
       } catch (error) {
         console.error("Error fetching shifts:", error);
+        setError((prev) => ({
+          ...prev,
+          hoursPerDateRangeRefetch: "Error fetching shifts",
+        }));
+        setLoading((prev) => ({ ...prev, hoursPerDateRangeRefetch: false }));
         throw error;
       }
     },

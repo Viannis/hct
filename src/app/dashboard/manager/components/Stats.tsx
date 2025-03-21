@@ -122,7 +122,12 @@ export default function Stats() {
     error.hoursPerDateRange,
   ]);
 
-  if (userLoading || shiftsLoading || loading.hoursPerDateRange) {
+  if (
+    userLoading ||
+    shiftsLoading ||
+    loading.hoursPerDateRange ||
+    loading.hoursPerDateRangeRefetch
+  ) {
     return (
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={24} md={12} lg={8}>
@@ -149,7 +154,12 @@ export default function Stats() {
     );
   }
 
-  if (userError || shiftsError || error.hoursPerDateRange) {
+  if (
+    userError ||
+    shiftsError ||
+    error.hoursPerDateRange ||
+    error.hoursPerDateRangeRefetch
+  ) {
     return <div>Error loading stats</div>;
   }
 
