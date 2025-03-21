@@ -2,6 +2,7 @@ import { Claims } from "@auth0/nextjs-auth0";
 import { PrismaClient, UserRole } from "@prisma/client";
 import { GraphQLError } from "graphql";
 
+
 const prisma = new PrismaClient();
 
 console.log("Resolvers called");
@@ -258,6 +259,7 @@ export const resolvers = {
     ) => {
       const { user: shiftUser } = context;
       console.log("Shifts query called");
+      console.log("Date range:", dateRange);
 
       if (!shiftUser?.sub) {
         // Check if the user is authenticated
@@ -361,7 +363,8 @@ export const resolvers = {
       context: Context
     ) => {
       const { user: staffUser } = context;
-
+      console.log("All shifts query called", dateRange);
+      console.log("Date range:", typeof dateRange);
       if (!staffUser?.sub) {
         // Check if the user is authenticated
         const error = errorResponse(401); // Return the error response
@@ -414,6 +417,8 @@ export const resolvers = {
         return shifts;
       }
 
+      console.log("No date range provided");
+
       const now = new Date(); // Set the current date
 
       // Set startDate to the beginning of today
@@ -452,6 +457,7 @@ export const resolvers = {
         orderBy: { createdAt: "desc" },
         include: { user: true },
       });
+      console.log("Shifts:", shifts);
       return shifts;
     },
 

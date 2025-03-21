@@ -166,6 +166,7 @@ export default function DashboardLayout({
           >
             <Image
               src={logo}
+              priority={true}
               alt="1HCT Logo"
               style={{
                 height: "auto",

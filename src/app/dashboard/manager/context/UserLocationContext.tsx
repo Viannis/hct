@@ -1,3 +1,5 @@
+"use client";
+
 import React, {
   createContext,
   useState,
@@ -9,19 +11,32 @@ import React, {
 import { useQuery, useMutation } from "@apollo/client";
 import { useUser, UserProfile } from "@auth0/nextjs-auth0/client";
 import { Location } from "@prisma/client";
-import { GET_LOCATION, GET_ALL_SHIFTS } from "@utils/queries";
+import {
+  GET_LOCATION,
+  GET_ALL_SHIFTS,
+  GET_HOURS_PER_DATE_RANGE,
+} from "@utils/queries";
 import { CREATE_LOCATION, UPDATE_LOCATION } from "@utils/mutations";
+import { loadErrorMessages, loadDevMessages } from "@apollo/client/dev";
+
+if (process.env.NODE_ENV === "development") {
+  // Adds messages only in a dev environment
+  loadDevMessages();
+  loadErrorMessages();
+}
 
 type Error = {
   location: string;
   user: string;
   shifts: string;
+  hoursPerDateRange: string;
 };
 
 type Loading = {
   location: boolean;
   user: boolean;
   shifts: boolean;
+  hoursPerDateRange: boolean;
 };
 
 interface UserLocationContextType {
@@ -44,6 +59,15 @@ interface UserLocationContextType {
         }>;
       }
     | undefined;
+  hoursPerDateRangeData:
+    | {
+        hoursPerDateRange: Array<{
+          userId: string;
+          userName: string;
+          dailyTotals: Array<{ date: string; hours: number }>;
+        }>;
+      }
+    | undefined;
 }
 
 const UserLocationContext = createContext<UserLocationContextType | null>(null);
@@ -53,15 +77,22 @@ export const UserLocationProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
+  const startDate = new Date();
+  startDate.setHours(0, 0, 0, 0);
+  const endDate = new Date();
+  endDate.setHours(23, 59, 59, 999);
+
   const [loading, setLoading] = useState<Loading>({
     location: true,
     user: true,
     shifts: true,
+    hoursPerDateRange: true,
   });
   const [error, setError] = useState<Error>({
     location: "",
     user: "",
     shifts: "",
+    hoursPerDateRange: "",
   });
   const [location, setLocation] = useState<Location | null>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -106,6 +137,27 @@ export const UserLocationProvider = ({
     refetch: refetchAllShifts,
   } = useQuery(GET_ALL_SHIFTS, {
     skip: !sessionUser,
+    variables: {
+      dateRange: {
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+      },
+    },
+  });
+
+  const {
+    data: hoursPerDateRangeData,
+    loading: hoursPerDateRangeLoading,
+    error: hoursPerDateRangeError,
+    refetch: refetchHoursPerDateRange,
+  } = useQuery(GET_HOURS_PER_DATE_RANGE, {
+    variables: {
+      dateRange: {
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+      },
+    },
+    skip: !shiftsData,
   });
 
   useEffect(() => {
@@ -134,6 +186,20 @@ export const UserLocationProvider = ({
       console.error("Error fetching shifts:", shiftsError);
       setError((prev) => ({ ...prev, shifts: shiftsError.message }));
     }
+    if (hoursPerDateRangeData && !hoursPerDateRangeLoading) {
+      console.log("hoursPerDateRangeData", hoursPerDateRangeData);
+      setLoading((prev) => ({ ...prev, hoursPerDateRange: false }));
+    }
+    if (hoursPerDateRangeError) {
+      console.error(
+        "Error fetching hours per date range:",
+        hoursPerDateRangeError
+      );
+      setError((prev) => ({
+        ...prev,
+        hoursPerDateRange: hoursPerDateRangeError.message,
+      }));
+    }
   }, [
     data,
     userError,
@@ -144,6 +210,9 @@ export const UserLocationProvider = ({
     shiftsLoading,
     locationLoading,
     locationError,
+    hoursPerDateRangeData,
+    hoursPerDateRangeLoading,
+    hoursPerDateRangeError,
   ]); // Set the location and user in the state
 
   const createLocation = useCallback(
@@ -159,22 +228,29 @@ export const UserLocationProvider = ({
   ); // Update the location in the database
 
   const handleDateRangeChange = useCallback(
-    (startDate: Date, endDate: Date) => {
-      return refetchAllShifts({
-        variables: {
-          startDate: startDate.toISOString(),
-          endDate: endDate.toISOString(),
-        },
-      })
-        .then(() => {
-          console.log("Shifts refetched");
-        })
-        .catch((error) => {
-          console.error("Error fetching shifts:", error);
-          throw error;
+    async (startDate: Date, endDate: Date) => {
+      console.log("startDate", startDate);
+      console.log("endDate", endDate);
+      try {
+        await refetchAllShifts({
+          dateRange: {
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString(),
+          },
         });
+        console.log("Shifts refetched");
+        await refetchHoursPerDateRange({
+          dateRange: {
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString(),
+          },
+        });
+      } catch (error) {
+        console.error("Error fetching shifts:", error);
+        throw error;
+      }
     },
-    [refetchAllShifts]
+    [refetchAllShifts, refetchHoursPerDateRange]
   );
 
   const value = useMemo(
@@ -187,6 +263,7 @@ export const UserLocationProvider = ({
       user,
       handleDateRangeChange,
       shiftsData,
+      hoursPerDateRangeData,
     }),
     [
       location,
@@ -197,6 +274,7 @@ export const UserLocationProvider = ({
       user,
       shiftsData,
       handleDateRangeChange,
+      hoursPerDateRangeData,
     ]
   ); // Create the value for the context
 

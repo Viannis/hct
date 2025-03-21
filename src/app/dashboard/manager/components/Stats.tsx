@@ -1,49 +1,47 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useQuery } from "@apollo/client";
-import { GET_HOURS_PER_DATE_RANGE } from "@utils/queries";
 import { useUserLocation } from "../context/UserLocationContext";
 import { Card, Row, Col, Skeleton, Typography } from "antd";
 import { Line } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  Colors,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+} from "chart.js";
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Colors,
+  Tooltip,
+  Legend
+);
+import { loadErrorMessages, loadDevMessages } from "@apollo/client/dev";
+
+if (process.env.NODE_ENV === "development") {
+  // Adds messages only in a dev environment
+  loadDevMessages();
+  loadErrorMessages();
+}
 
 const { Title: TitleText } = Typography;
 
-type DailyTotal = {
-  date: string;
-  hours: number;
-};
-
-type UserDailyHours = {
-  userId: string;
-  userName: string;
-  dailyTotals: DailyTotal[];
-};
-
 export default function Stats() {
-  const { user, shiftsData, loading, error } = useUserLocation();
+  const { user, shiftsData, loading, error, hoursPerDateRangeData } =
+    useUserLocation();
   const [userLoading, setUserLoading] = useState(true);
   const [userError, setUserError] = useState(false);
   const [shiftsLoading, setShiftsLoading] = useState(true);
   const [shiftsError, setShiftsError] = useState(false);
-  const startDate = new Date();
-  startDate.setHours(0, 0, 0, 0);
-  const endDate = new Date();
-  endDate.setHours(23, 59, 59, 999);
-
-  const {
-    data: hoursPerDateRangeData,
-    loading: hoursPerDateRangeLoading,
-    error: hoursPerDateRangeError,
-  } = useQuery(GET_HOURS_PER_DATE_RANGE, {
-    variables: {
-      dateRange: {
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-      },
-    },
-    skip: !user,
-  });
 
   const [shiftsCompletedCount, setShiftsCompletedCount] = useState(0);
   const [activeShiftsCount, setActiveShiftsCount] = useState(0);
@@ -86,7 +84,11 @@ export default function Stats() {
   ]);
 
   useEffect(() => {
-    if (!hoursPerDateRangeLoading && hoursPerDateRangeData?.hoursPerDateRange) {
+    console.log("hoursPerDateRangeData", hoursPerDateRangeData);
+    if (
+      !loading.hoursPerDateRange &&
+      hoursPerDateRangeData?.hoursPerDateRange
+    ) {
       const labels: string[] = [];
       const dataSets: {
         label: string;
@@ -94,35 +96,60 @@ export default function Stats() {
         tension: number;
       }[] = [];
 
-      hoursPerDateRangeData.hoursPerDateRange.forEach(
-        (user: UserDailyHours) => {
-          const userHours = user.dailyTotals.map((daily: DailyTotal) => {
-            if (!labels.includes(daily.date)) {
-              labels.push(daily.date);
-            }
-            return daily.hours;
-          });
+      hoursPerDateRangeData.hoursPerDateRange.forEach((user) => {
+        const userHours = user.dailyTotals.map((daily) => {
+          if (!labels.includes(daily.date)) {
+            labels.push(daily.date);
+          }
+          return daily.hours;
+        });
 
-          dataSets.push({
-            label: user.userName,
-            data: userHours,
-            tension: 0.1,
-          });
-        }
-      );
+        dataSets.push({
+          label: user.userName,
+          data: userHours,
+          tension: 0.1,
+        });
+      });
 
       setChartData({
         labels,
         datasets: dataSets,
       });
     }
-  }, [hoursPerDateRangeLoading, hoursPerDateRangeData]);
+  }, [
+    hoursPerDateRangeData,
+    loading.hoursPerDateRange,
+    error.hoursPerDateRange,
+  ]);
 
-  if (userLoading || shiftsLoading || hoursPerDateRangeLoading) {
-    return <Skeleton active paragraph={{ rows: 4 }} />;
+  if (userLoading || shiftsLoading || loading.hoursPerDateRange) {
+    return (
+      <Row gutter={[16, 16]}>
+        <Col xs={24} sm={24} md={12} lg={8}>
+          <Card title="Shifts Completed">
+            <Skeleton.Input active />
+          </Card>
+          <Card title="Active Shifts" style={{ marginTop: 16 }}>
+            <Skeleton.Input active />
+          </Card>
+        </Col>
+        <Col xs={24} sm={24} md={12} lg={16}>
+          <Card
+            title="Hours Worked"
+            style={{ height: "100%", width: "100%" }}
+            styles={{
+              body: { height: "60%", width: "100%" },
+            }}
+            loading={true}
+          >
+            <div style={{ height: "100%", width: "100%" }}></div>
+          </Card>
+        </Col>
+      </Row>
+    );
   }
 
-  if (userError || shiftsError || hoursPerDateRangeError) {
+  if (userError || shiftsError || error.hoursPerDateRange) {
     return <div>Error loading stats</div>;
   }
 
@@ -137,7 +164,7 @@ export default function Stats() {
         </Card>
       </Col>
       <Col xs={24} sm={24} md={12} lg={16}>
-        <Card title="Hours Worked Today" style={{ height: "100%" }}>
+        <Card title="Hours Worked" style={{ height: "100%" }}>
           <Line
             data={chartData}
             options={{
