@@ -58,6 +58,7 @@ export const CLOCK_IN = gql`
       clockOut
       clockInNote
       clockOutNote
+      locationName
       user {
         id
         name
@@ -74,6 +75,7 @@ export const CLOCK_OUT = gql`
       clockOut
       clockInNote
       clockOutNote
+      locationName
       user {
         id
         name

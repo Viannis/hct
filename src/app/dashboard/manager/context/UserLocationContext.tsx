@@ -57,6 +57,7 @@ interface UserLocationContextType {
           clockOut: Date | null;
           clockInNote: string;
           clockOutNote: string;
+          locationName: string;
           user: { id: string; name: string };
         }>;
       }

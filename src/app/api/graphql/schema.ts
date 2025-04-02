@@ -31,6 +31,7 @@ const typeDefs = gql`
     clockInNote: String
     clockOutNote: String
     user: User!
+    locationName: String
   }
 
   type DailyAverage {
@@ -57,6 +58,13 @@ const typeDefs = gql`
     lastClockedOut: DateTime
   }
 
+  type CareTakerHoursShifts {
+    id: ID!
+    name: String!
+    shifts: Int!
+    hours: Float!
+  }
+
   input DateRangeInput {
     startDate: DateTime!
     endDate: DateTime!
@@ -70,6 +78,7 @@ const typeDefs = gql`
     caretakerShifts(userId: ID): User!
     shifts(userId: ID, dateRange: DateRangeInput): [Shift!]
     allShifts(dateRange: DateRangeInput): [Shift!]
+    careTakerHoursShifts(dateRange: DateRangeInput): [CareTakerHoursShifts!]
     hoursLast7Days: [DailyHours!]!
     hoursPerDateRange(dateRange: DateRangeInput): [UserDailyHours!]!
   }
@@ -94,6 +103,7 @@ const typeDefs = gql`
 
   input ClockInInput {
     note: String
+    locationName: String
   }
 
   input ClockOutInput {
@@ -112,6 +122,7 @@ const typeDefs = gql`
     clockIn(input: ClockInInput): Shift!
     clockOut(input: ClockOutInput): Shift!
   }
+  
 
   scalar DateTime
 `;

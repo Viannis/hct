@@ -4,16 +4,23 @@ import { useState, useEffect, useRef } from "react";
 import {
   Table,
   Button,
-  Flex,
+  Radio,
   notification,
   Select,
   Row,
   Col,
   Modal,
-  Switch,
 } from "antd";
 import { useUserLocation } from "../context/UserLocationContext";
+import { GoogleMap, Marker, Circle } from "@react-google-maps/api";
 import type { NotificationArgsProps } from "antd";
+import moment from "moment";
+import jsPDF from "jspdf";
+import { Parser } from "json2csv";
+import PDFPreviewExport from "./PDFPreviewExport";
+import { autoTable } from "jspdf-autotable";
+import { EnvironmentFilled } from "@ant-design/icons";
+import { useGoogleMaps } from "../context/GoogleMapsContext";
 
 export type TableShift = {
   id: string;
@@ -23,22 +30,34 @@ export type TableShift = {
   clockOut: Date | null;
   clockInNote: string;
   clockOutNote: string;
+  latitude: string | null;
+  longitude: string | null;
   userName: string;
 };
-import moment from "moment";
-import jsPDF from "jspdf";
-import { Parser } from "json2csv";
-import PDFPreviewExport from "./PDFPreviewExport";
-import { autoTable } from "jspdf-autotable";
+
+export type TableShiftTotal = {
+  userId: string;
+  userName: string;
+  totalShifts: number;
+  totalHours: number;
+};
 
 const { Option } = Select;
 type NotificationPlacement = NotificationArgsProps["placement"];
 type NotificationType = "success" | "info" | "warning" | "error";
 
 export default function ActiveCompletedCareTakers() {
-  const { shiftsData, loading, error, handleDateRangeChange } =
+  const startDate = new Date();
+  startDate.setHours(0, 0, 0, 0);
+  startDate.setDate(startDate.getDate() - 7);
+  const endDate = new Date();
+  endDate.setHours(23, 59, 59, 999);
+  const { shiftsData, loading, error, handleDateRangeChange, location } =
     useUserLocation();
+
+  const { isLoaded, loadError } = useGoogleMaps();
   const [activeShifts, setActiveShifts] = useState<TableShift[]>([]);
+  const [shiftsTotal, setShiftsTotal] = useState<TableShiftTotal[]>([]);
   const [shiftsRefetching, setShiftsRefetching] = useState(false);
   const [shiftsLoading, setShiftsLoading] = useState(true);
   const [shiftsError, setShiftsError] = useState(false);
@@ -48,6 +67,12 @@ export default function ActiveCompletedCareTakers() {
   const previousDateRange = useRef(dateRange);
   const [previewData, setPreviewData] = useState<TableShift[]>([]);
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [locationModalOpen, setLocationModalOpen] = useState(false);
+  const [selectedShiftLocation, setSelectedShiftLocation] =
+    useState<TableShift | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedShift, setSelectedShift] = useState<TableShift | null>(null);
+
   const [notificationConfig, setNotificationConfig] = useState<{
     message: string;
     description: string;
@@ -56,7 +81,7 @@ export default function ActiveCompletedCareTakers() {
     autoCloseDuration: number;
   } | null>(null);
 
-  const [api, contextHolder] = notification.useNotification(); // Notification API Ant Design
+  const [api, contextHolder] = notification.useNotification(); // Notification API Ant Design // Libraries for the Google Maps API
 
   useEffect(() => {
     if (notificationConfig) {
@@ -73,6 +98,7 @@ export default function ActiveCompletedCareTakers() {
   }, [notificationConfig, api]);
 
   useEffect(() => {
+    console.log("Active shifts useEffect for allShifts is being called");
     if (!loading.shifts && shiftsData?.allShifts) {
       console.log("Shifts today:", shiftsData.allShifts);
       const active = shiftsData.allShifts.filter(
@@ -90,6 +116,8 @@ export default function ActiveCompletedCareTakers() {
         clockOut: shift.clockOut,
         clockInNote: shift.clockInNote,
         clockOutNote: shift.clockOutNote,
+        latitude: shift.locationName?.split(",")[0],
+        longitude: shift.locationName?.split(",")[1],
         userName: shift.user.name,
         uniqueId: `${shift.id}-${shift.clockIn}`, // Generate uniqueId once to avoid duplicate keys when eport preview table is rendered in a modal over the same the table rendered in the page
       }));
@@ -100,11 +128,30 @@ export default function ActiveCompletedCareTakers() {
         clockOut: shift.clockOut,
         clockInNote: shift.clockInNote,
         clockOutNote: shift.clockOutNote,
+        latitude: shift.locationName?.split(",")[0],
+        longitude: shift.locationName?.split(",")[1],
         userName: shift.user.name,
         uniqueId: `${shift.id}-${shift.clockIn}`, // Generate uniqueId once
       }));
+      const shiftsTotalData = completedShiftData.reduce((acc, shift) => {
+        const user_id = shift.userId;
+        if (!acc[user_id]) {
+          acc[user_id] = {
+            userId: user_id,
+            userName: shift.userName,
+            totalShifts: 0,
+            totalHours: 0,
+          };
+        }
+        acc[user_id].totalShifts++;
+        acc[user_id].totalHours += shift.clockOut
+          ? moment(shift.clockOut).diff(moment(shift.clockIn), "hours")
+          : 0;
+        return acc;
+      }, {} as Record<string, TableShiftTotal>);
       setActiveShifts(activeShiftData);
       setCompletedShifts(completedShiftData);
+      setShiftsTotal(Object.values(shiftsTotalData));
       setShiftsLoading(false);
     }
     if (error.shifts) {
@@ -124,6 +171,9 @@ export default function ActiveCompletedCareTakers() {
       });
     }
   }, [shiftsError]);
+
+  if (!isLoaded) return <div>Loading...</div>;
+  if (loadError) return <div>Error loading maps</div>;
 
   const handleDateRangeSelect = (value: string) => {
     // Handle the date range select
@@ -164,6 +214,16 @@ export default function ActiveCompletedCareTakers() {
       });
   };
 
+  const handleLocationModalOpen = (shift: TableShift) => {
+    setSelectedShiftLocation(shift);
+    setLocationModalOpen(true);
+  };
+
+  const handleLocationModalClose = () => {
+    setSelectedShiftLocation(null);
+    setLocationModalOpen(false);
+  };
+
   const formatText = (text: string) => {
     // Format the text to be displayed in the table
     if (!text) return "-";
@@ -202,6 +262,19 @@ export default function ActiveCompletedCareTakers() {
         <Button onClick={() => handleModalOpen(record)}>+</Button>
       ),
     },
+    {
+      title: "Location",
+      key: "location",
+      render: (_: unknown, record: TableShift) =>
+        record.latitude && record.longitude ? (
+          <Button
+            icon={<EnvironmentFilled />}
+            onClick={() => handleLocationModalOpen(record)}
+          />
+        ) : (
+          "-"
+        ),
+    },
   ];
 
   const columnsActive = [
@@ -230,10 +303,39 @@ export default function ActiveCompletedCareTakers() {
         <Button onClick={() => handleModalOpen(record)}>+</Button>
       ),
     },
+    {
+      title: "Location",
+      key: "location",
+      render: (_: unknown, record: TableShift) =>
+        record.latitude && record.longitude ? (
+          <Button
+            icon={<EnvironmentFilled />}
+            onClick={() => handleLocationModalOpen(record)}
+          />
+        ) : (
+          "-"
+        ),
+    },
   ];
 
-  const [modalOpen, setModalOpen] = useState(false);
-  const [selectedShift, setSelectedShift] = useState<TableShift | null>(null);
+  const columnsShiftsTotal = [
+    // Columns for the active shifts table
+    {
+      title: "Name",
+      dataIndex: "userName",
+      key: "name",
+    },
+    {
+      title: "Total Shifts",
+      dataIndex: "totalShifts",
+      key: "totalShifts",
+    },
+    {
+      title: "Total Hours",
+      dataIndex: "totalHours",
+      key: "totalHours",
+    },
+  ];
 
   const handleModalOpen = (shift: TableShift) => {
     // Open the modal to view the shift details
@@ -337,11 +439,16 @@ export default function ActiveCompletedCareTakers() {
       >
         <Row gutter={[16, 16]} justify="space-between" align="top">
           <Col xs={24} sm={12}>
-            <Flex gap={12}>
-              <h2>{tableIsActive ? "Active Shifts" : "Completed Shifts"}</h2>
-              <Switch defaultChecked onChange={setTableIsActive} />{" "}
-              {/* Switch for toggling between active and completed shifts */}
-            </Flex>
+            <Row justify="start" align="middle" style={{ gap: 16 }}>
+              <h2>Shifts Summary</h2>
+              <Radio.Group
+                onChange={(e) => setTableIsActive(e.target.value === "active")}
+                defaultValue={tableIsActive ? "active" : "completed"}
+              >
+                <Radio.Button value="active">Active</Radio.Button>
+                <Radio.Button value="completed">Completed</Radio.Button>
+              </Radio.Group>
+            </Row>
           </Col>
           <Col xs={24} sm={12}>
             <Row justify="end" gutter={[12, 12]} align="top">
@@ -365,7 +472,7 @@ export default function ActiveCompletedCareTakers() {
             </Row>
           </Col>
         </Row>
-        {tableIsActive ? ( // Render the active shifts table
+        {tableIsActive ? (
           <Table
             columns={columnsActive}
             dataSource={activeShifts}
@@ -375,7 +482,6 @@ export default function ActiveCompletedCareTakers() {
             scroll={{ x: "max-content" }}
           />
         ) : (
-          // Render the completed shifts table
           <Table
             columns={columnsCompleted}
             dataSource={completedShifts}
@@ -425,6 +531,70 @@ export default function ActiveCompletedCareTakers() {
       >
         <h2>Preview of Page 1</h2>
         <PDFPreviewExport data={previewData} confirmExport={confirmExport} />
+      </Modal>
+      <Modal
+        open={locationModalOpen}
+        onCancel={handleLocationModalClose}
+        footer={null}
+        width={800}
+        height={800}
+      >
+        {!!selectedShiftLocation?.latitude &&
+          !!selectedShiftLocation?.longitude &&
+          !!location?.latitude &&
+          !!location?.longitude && (
+            <GoogleMap
+              center={{
+                lat: parseFloat(location.latitude.toString()),
+                lng: parseFloat(location.longitude.toString()),
+              }}
+              zoom={15}
+              mapContainerStyle={{ width: "100%", height: "400px" }}
+            >
+              <Circle
+                center={{
+                  lat: parseFloat(location.latitude.toString()),
+                  lng: parseFloat(location.longitude.toString()),
+                }}
+                radius={location.radius * 1000} // Small radius for the dot
+                options={{
+                  fillColor: "#1677ff",
+                  fillOpacity: 0.1,
+                  strokeColor: "#1677ff",
+                  strokeOpacity: 0.5,
+                  strokeWeight: 1,
+                }}
+              />
+
+              <Marker
+                position={{
+                  lat: parseFloat(location.latitude.toString()),
+                  lng: parseFloat(location.longitude.toString()),
+                }}
+                icon={{
+                  url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png",
+                  scaledSize: new google.maps.Size(50, 50),
+                }}
+              />
+              <Marker
+                position={{
+                  lat: parseFloat(selectedShiftLocation.latitude),
+                  lng: parseFloat(selectedShiftLocation.longitude),
+                }}
+                icon={{
+                  url:
+                    "data:image/svg+xml;charset=UTF-8," +
+                    encodeURIComponent(`
+                      <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 10 10">
+                        <circle cx="5" cy="5" r="5" fill="#1677ff" />
+                      </svg>
+                    `),
+                  scaledSize: new google.maps.Size(15, 15), // Adjust the size of the dot
+                }}
+                title={`${selectedShiftLocation.userName}'s Clock In Location`}
+              />
+            </GoogleMap>
+          )}
       </Modal>
     </>
   );

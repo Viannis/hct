@@ -72,6 +72,17 @@ export const GET_CARETAKER_SHIFTS = gql`
   }
 `;
 
+export const GET_CARETAKER_HOURS_SHIFTS = gql`
+  query GetCareTakerHoursShifts($dateRange: DateRangeInput) {
+    careTakerHoursShifts(dateRange: $dateRange) {
+      id
+      name
+      shifts
+      hours
+    }
+  }
+`;
+
 export const GET_SHIFTS = gql`
   query GetShifts($userId: ID!, $dateRange: DateRangeInput) {
     shifts(userId: $userId, dateRange: $dateRange) {
@@ -80,6 +91,7 @@ export const GET_SHIFTS = gql`
       clockOut
       clockInNote
       clockOutNote
+      locationName
       user {
         id
         name
@@ -96,6 +108,7 @@ export const GET_ALL_SHIFTS = gql`
       clockOut
       clockInNote
       clockOutNote
+      locationName
       user {
         id
         name

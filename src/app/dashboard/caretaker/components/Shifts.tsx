@@ -28,6 +28,7 @@ const placeholderShift: Shift = {
   clockOut: null,
   clockInNote: "Loading...",
   clockOutNote: null,
+  locationName: null,
   createdAt: new Date(),
   updatedAt: new Date(),
   userId: "loading",
@@ -207,7 +208,9 @@ const Shifts = () => {
     if (isUserInRange) {
       console.log("User is in the location range");
       try {
-        await handleClockIn(note); // Clock in the shift (graphQL Mutation)
+        const locationName = latitude + "," + longitude;
+        console.log("Location name", locationName);
+        await handleClockIn(note, locationName); // Clock in the shift (graphQL Mutation)
         setNotificationConfig({
           message: "Success",
           description: "Clocked in successfully",
@@ -360,6 +363,12 @@ const Shifts = () => {
       dataIndex: "clockOutNote",
       key: "clockOutNote",
       render: (text: string) => formatText(text),
+    },
+    {
+      title: "Location",
+      dataIndex: "locationName",
+      key: "locationName",
+      render: (text: string) => formatText(text) ?? "-",
     },
     {
       title: "Action",

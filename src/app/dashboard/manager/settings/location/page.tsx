@@ -5,12 +5,11 @@ import { GET_LOCATION } from "@utils/queries";
 import { useState, useRef, useEffect } from "react";
 import { Input, Button, Alert, Space, notification, Typography } from "antd";
 import { EditOutlined, SearchOutlined } from "@ant-design/icons";
-import { useLoadScript, Libraries } from "@react-google-maps/api";
 import type { InputRef, NotificationArgsProps } from "antd";
 import { CREATE_LOCATION, UPDATE_LOCATION } from "@utils/mutations";
 import { Location } from "@prisma/client";
-
-const libraries: Libraries = ["places", "geocoding"]; // Libraries for the Google Maps API
+import { useGoogleMaps } from "../../context/GoogleMapsContext";
+// Libraries for the Google Maps API
 type NotificationPlacement = NotificationArgsProps["placement"];
 type NotificationType = "success" | "info" | "warning" | "error";
 const { Text } = Typography;
@@ -31,7 +30,7 @@ export default function LocationPage() {
     radius: "",
   });
   const [location, setLocation] = useState<Location | null>(null);
-
+  const { isLoaded, loadError } = useGoogleMaps(); // Custom hook to load Google Maps API
   const [notificationConfig, setNotificationConfig] = useState<{
     message: string;
     description: string;
@@ -59,12 +58,6 @@ export default function LocationPage() {
   if (!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY) {
     throw new Error("Google Maps API key is missing.");
   }
-
-  const { isLoaded, loadError } = useLoadScript({
-    // Load the Google Maps API
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
-    libraries,
-  });
 
   useEffect(() => {
     // Set state for location data

@@ -14,8 +14,7 @@ import Link from "next/link";
 import logo from "@/app/logo.png";
 import { useState, useEffect } from "react";
 import type { NotificationArgsProps } from "antd";
-import { UserLocationProvider } from "./manager/context/UserLocationContext";
-import LoadError from "./manager/components/LoadError";
+import { GoogleMapsProvider } from "./manager/context/GoogleMapsContext";
 
 type NotificationPlacement = NotificationArgsProps["placement"];
 type NotificationType = "success" | "info" | "warning" | "error";
@@ -227,12 +226,7 @@ export default function DashboardLayout({
             />
           </Drawer>
           <Content style={{ margin: "24px 16px", padding: 24 }}>
-            <UserLocationProvider>
-              {" "}
-              {/* UserLocationProvider component for the user location context */}
-              <LoadError>{children}</LoadError>{" "}
-              {/* LoadError component for the error handling and page loading */}
-            </UserLocationProvider>
+            <GoogleMapsProvider>{children}</GoogleMapsProvider>
           </Content>
         </Layout>
       </Layout>

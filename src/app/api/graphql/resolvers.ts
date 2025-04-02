@@ -2,7 +2,6 @@ import { Claims } from "@auth0/nextjs-auth0";
 import { PrismaClient, UserRole } from "@prisma/client";
 import { GraphQLError } from "graphql";
 
-
 const prisma = new PrismaClient();
 
 console.log("Resolvers called");
@@ -28,6 +27,13 @@ type UserDailyHours = {
   userId: string;
   userName: string;
   dailyTotals: DailyTotal[];
+};
+
+type CareTakerHoursShifts = {
+  id: string;
+  name: string;
+  shifts: number;
+  hours: number;
 };
 
 const errorResponse = (status: number): ErrorResponse => {
@@ -193,7 +199,6 @@ export const resolvers = {
       { userId }: { userId: string },
       context: Context
     ) => {
-      console.log("Caretaker shifts query called");
       const { user: staffUser } = context;
 
       if (!staffUser?.sub) {
@@ -235,14 +240,155 @@ export const resolvers = {
         throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
 
-      console.log("Caretaker shifts:", caretakerShifts); // Log the caretaker shifts
-
       return {
         id: caretakerShifts.id,
         name: caretakerShifts.name,
         email: caretakerShifts.email,
         shifts: caretakerShifts.shifts || [],
       };
+    },
+
+    careTakerHoursShifts: async (
+      _: unknown,
+      { dateRange }: { dateRange?: { startDate: Date; endDate: Date } },
+      context: Context
+    ) => {
+      const { user: staffUser } = context;
+      console.log("Care Taker Hours Shifts query called");
+
+      if (!staffUser?.sub) {
+        const error = errorResponse(401);
+        throw new GraphQLError(error.message, { extensions: error.extensions });
+      }
+
+      const currentUser = await prisma.user.findUnique({
+        where: { auth0Id: staffUser.sub },
+      });
+
+      if (!currentUser) {
+        const error = errorResponse(404);
+        throw new GraphQLError(error.message, { extensions: error.extensions });
+      }
+
+      if (currentUser.role !== "MANAGER") {
+        const error = errorResponse(403);
+        throw new GraphQLError(error.message, { extensions: error.extensions });
+      }
+
+      if (dateRange) {
+        const { startDate, endDate } = dateRange;
+        const shifts = await prisma.shift.findMany({
+          where: {
+            user: {
+              role: "CARETAKER",
+            },
+            clockOut: {
+              gte: startDate,
+              lte: endDate,
+              not: null,
+            },
+            AND: [
+              {
+                clockIn: {
+                  gte: startDate, // Check if the clock in date is greater than or equal to the start date
+                },
+              },
+              {
+                clockOut: {
+                  lte: endDate, // Check if the clock out date is less than or equal to the end date
+                },
+              },
+            ],
+          },
+          orderBy: { createdAt: "desc" },
+          include: { user: true },
+        });
+
+        const careTakerHoursShiftsData = shifts.reduce((acc, shift) => {
+          const userId = shift.user.id;
+          if (!acc[userId]) {
+            acc[userId] = {
+              id: shift.user.id,
+              name: shift.user.name,
+              shifts: 0,
+              hours: 0,
+            };
+          }
+          acc[userId].shifts += 1;
+          if (shift.clockOut) {
+            const clockInTime = new Date(shift.clockIn).getTime();
+            const clockOutTime = new Date(shift.clockOut).getTime();
+            const hoursWorked = (clockOutTime - clockInTime) / (1000 * 60 * 60);
+            acc[userId].hours += hoursWorked;
+          }
+
+          return acc;
+        }, {} as Record<string, CareTakerHoursShifts>);
+
+        return Object.values(careTakerHoursShiftsData);
+      }
+
+      const now = new Date();
+      const startDate = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate() - 7
+      );
+      const endDate = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate()
+      );
+
+      const shifts = await prisma.shift.findMany({
+        where: {
+          user: {
+            role: "CARETAKER",
+          },
+          clockOut: {
+            gte: startDate,
+            lte: endDate,
+            not: null,
+          },
+          AND: [
+            {
+              clockIn: {
+                gte: startDate, // Check if the clock in date is greater than or equal to the start date
+              },
+            },
+            {
+              clockOut: {
+                lte: endDate, // Check if the clock out date is less than or equal to the end date
+              },
+            },
+          ],
+        },
+        orderBy: { createdAt: "desc" },
+        include: { user: true },
+      });
+
+      const careTakerHoursShiftsData = shifts.reduce((acc, shift) => {
+        const userId = shift.user.id;
+        if (!acc[userId]) {
+          acc[userId] = {
+            id: shift.user.id,
+            name: shift.user.name,
+            shifts: 0,
+            hours: 0,
+          };
+        }
+        acc[userId].shifts += 1;
+        if (shift.clockOut) {
+          const clockInTime = new Date(shift.clockIn).getTime();
+          const clockOutTime = new Date(shift.clockOut).getTime();
+          const hoursWorked = (clockOutTime - clockInTime) / (1000 * 60 * 60);
+          acc[userId].hours += hoursWorked;
+        }
+
+        return acc;
+      }, {} as Record<string, CareTakerHoursShifts>);
+
+      return Object.values(careTakerHoursShiftsData);
     },
 
     shifts: async (
@@ -258,16 +404,12 @@ export const resolvers = {
       context: Context
     ) => {
       const { user: shiftUser } = context;
-      console.log("Shifts query called");
-      console.log("Date range:", dateRange);
 
       if (!shiftUser?.sub) {
         // Check if the user is authenticated
         const error = errorResponse(401); // Return the error response
         throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
-
-      console.log("Input User ID:", userId, "Session user ID:", shiftUser?.sub);
 
       const currentUser = await prisma.user.findUnique({
         // Get the user by ID
@@ -284,7 +426,6 @@ export const resolvers = {
         // Check if the user is a manager
         if (userId !== shiftUser.sub) {
           // Check if the user is the same as the one fetching the shifts
-          console.log("Current user is not the one fetching shifts");
           const error = errorResponse(403); // Return the error response
           throw new GraphQLError(error.message, {
             extensions: error.extensions,
@@ -293,10 +434,7 @@ export const resolvers = {
 
         if (dateRange) {
           // Check if the date range is provided
-          console.log("Date range:", typeof dateRange); // Log the date range
           const { startDate, endDate } = dateRange; // Destructure the date range
-          console.log("Start date:", startDate); // Log the start date
-          console.log("End date:", endDate); // Log the end date
           const shifts = await prisma.shift.findMany({
             // Get the shifts
             where: {
@@ -309,7 +447,6 @@ export const resolvers = {
             orderBy: { createdAt: "desc" },
             include: { user: true },
           });
-
           return shifts;
         }
         const startDate = new Date(); // Set the start date
@@ -324,8 +461,6 @@ export const resolvers = {
 
         return shifts;
       }
-
-      console.log("Current user is the one fetching shifts"); // Log the current user is the one fetching shifts
 
       if (dateRange) {
         // Check if the date range is provided
@@ -363,8 +498,6 @@ export const resolvers = {
       context: Context
     ) => {
       const { user: staffUser } = context;
-      console.log("All shifts query called", dateRange);
-      console.log("Date range:", typeof dateRange);
       if (!staffUser?.sub) {
         // Check if the user is authenticated
         const error = errorResponse(401); // Return the error response
@@ -417,8 +550,6 @@ export const resolvers = {
         return shifts;
       }
 
-      console.log("No date range provided");
-
       const now = new Date(); // Set the current date
 
       // Set startDate to the beginning of today
@@ -457,7 +588,6 @@ export const resolvers = {
         orderBy: { createdAt: "desc" },
         include: { user: true },
       });
-      console.log("Shifts:", shifts);
       return shifts;
     },
 
@@ -560,8 +690,6 @@ export const resolvers = {
           })),
         }));
 
-      console.log("Result:", result); // Log the result
-
       return result;
     },
 
@@ -574,7 +702,6 @@ export const resolvers = {
         now.getMonth(),
         now.getDate() - 5
       );
-      console.log("Start date:", startDate);
       if (!staffUser?.sub) {
         // Check if the user is authenticated
         const error = errorResponse(401); // Return the error response
@@ -619,8 +746,6 @@ export const resolvers = {
         dailyTotals[dateKey] = 0;
       }
 
-      console.log(dailyTotals);
-
       // For each shift, compute the duration (in hours) and assign it to the day of clockOut
       shifts.forEach((shift) => {
         if (shift.clockOut) {
@@ -630,30 +755,28 @@ export const resolvers = {
             .toISOString()
             .split("T")[0]
             .split("-")[2];
-          console.log("Date key:", dateKey);
+
           if (dailyTotals.hasOwnProperty(dateKey)) {
             // Check if the date key is in the daily totals
-            console.log("Shift:", shift);
+
             const clockInTime = new Date(shift.clockIn).getTime(); // Get the clock in time
             const clockOutTime = clockOutDate.getTime(); // Get the clock out time
             const hoursWorked = (clockOutTime - clockInTime) / (1000 * 60 * 60); // Get the hours worked
-            console.log(dailyTotals[dateKey]); // Log the daily totals
+
             dailyTotals[dateKey] += hoursWorked;
           }
         }
       });
-
-      console.log("Daily totals:", dailyTotals);
 
       // Convert the dailyTotals object into an array of 7 floats in ascending order (from oldest to today)
       const result = [];
       for (let i = 0; i < 7; i++) {
         // Loop through the 7 days and update each day with the hours worked
         const day = new Date(startDate); // Get the start date
-        console.log("Start date:", startDate); // Log the start date
+
         day.setDate(startDate.getDate() + i - 1); // Set the date to the day of the week
         const dateKey = String(day.getDate()); // Get the date key
-        console.log("Date key:", dateKey); // Log the date key
+
         result.push({
           // Add the date and hours to the result
           date: dateKey,
@@ -911,6 +1034,7 @@ export const resolvers = {
         input: {
           // The input is the clock in data
           note: string; // The note of the clock in
+          locationName: string; // The name of the location
         };
       },
       context: Context
@@ -971,6 +1095,7 @@ export const resolvers = {
               id: userRecord.id,
             },
           },
+          locationName: input.locationName, // The name of the location
         },
         include: {
           user: true,
@@ -990,7 +1115,6 @@ export const resolvers = {
       },
       context: Context
     ) => {
-      console.log("Clock out mutation called", input);
       const { user } = context;
       if (!user?.sub) {
         // Check if the user is authenticated
@@ -1024,8 +1148,6 @@ export const resolvers = {
         const error = errorResponse(403); // Return the error response
         throw new GraphQLError(error.message, { extensions: error.extensions }); // Throw the error
       }
-
-      console.log("Input ID:", input.id);
 
       const existingShift = await prisma.shift.findFirst({
         // Find the existing shift

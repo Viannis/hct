@@ -57,7 +57,7 @@ interface ShiftsContextType {
   location: Location | null;
   loading: Loading;
   setLoading: React.Dispatch<React.SetStateAction<Loading>>;
-  handleClockIn: (note: string) => Promise<void>;
+  handleClockIn: (note: string, locationName: string) => Promise<void>;
   handleClockOut: (id: string, note: string) => Promise<void>;
   handleDateRangeChange: (startDate: Date, endDate: Date) => Promise<void>;
   error: Error;
@@ -71,7 +71,7 @@ export const ShiftsProvider = ({ children }: { children: React.ReactNode }) => {
   const [hoursLast7Days, setHoursLast7Days] = useState<HoursPerDay[]>([]);
   const [location, setLocation] = useState<Location | null>(null);
   const [loading, setLoading] = useState<Loading>({
-    user: userLoading,
+    user: true,
     shifts: true,
     clockInOut: false,
     shiftsRefetching: false,
@@ -192,6 +192,9 @@ export const ShiftsProvider = ({ children }: { children: React.ReactNode }) => {
   });
 
   useEffect(() => {
+    if (!userLoading && user) {
+      setLoading((prev) => ({ ...prev, user: false }));
+    }
     if (shiftsData) {
       console.log("Shifts data:", shiftsData);
       setShifts(shiftsData.shifts);
@@ -215,18 +218,19 @@ export const ShiftsProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading((prev) => ({ ...prev, user: true }));
     }
   }, [
+    userLoading,
     shiftsData,
     hoursData,
     locationData,
     userError,
-    userLoading,
     locationLoading,
     shiftsError,
+    user,
   ]); // Set the shifts, hours, location, user, and loading states
 
   const clockIn = useCallback(
-    (note: string) => {
-      return clockInMutation({ variables: { input: { note } } })
+    (note: string, locationName: string) => {
+      return clockInMutation({ variables: { input: { note, locationName } } })
         .then(() => {
           console.log("Clocked in");
         })

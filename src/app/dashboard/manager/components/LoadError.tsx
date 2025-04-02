@@ -1,15 +1,17 @@
-import router from "next/router";
+"use client";
 import { useUserLocation } from "../context/UserLocationContext";
 import { Button, Spin, Alert } from "antd";
-
+import { useRouter } from "next/navigation";
 export default function LoadError({
   children,
 }: {
   readonly children: React.ReactNode;
 }) {
+  const router = useRouter();
   const { error, loading, location } = useUserLocation();
 
-  if (loading.user || loading.location) { // Render the loading
+  if (loading.user || loading.location) {
+    // Render the loading
     return (
       <div
         style={{
@@ -24,7 +26,8 @@ export default function LoadError({
       </div>
     );
   }
-  if (error.user || error.location) { // Render the error
+  if (error.user || error.location) {
+    // Render the error
     return (
       <div
         style={{
@@ -61,4 +64,4 @@ export default function LoadError({
     );
   }
   return children; // Return the children if the location is set, no more loading or error
-} 
+}
