@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useUserLocation } from "../context/UserLocationContext";
 import { Card, Row, Col, Skeleton, Typography } from "antd";
 import type { TableShift } from "./ActiveCompletedCareTakers";

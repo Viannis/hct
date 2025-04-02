@@ -57,7 +57,7 @@ export default function ActiveCompletedCareTakers() {
 
   const { isLoaded, loadError } = useGoogleMaps();
   const [activeShifts, setActiveShifts] = useState<TableShift[]>([]);
-  const [shiftsTotal, setShiftsTotal] = useState<TableShiftTotal[]>([]);
+  // const [shiftsTotal, setShiftsTotal] = useState<TableShiftTotal[]>([]);
   const [shiftsRefetching, setShiftsRefetching] = useState(false);
   const [shiftsLoading, setShiftsLoading] = useState(true);
   const [shiftsError, setShiftsError] = useState(false);
@@ -133,25 +133,25 @@ export default function ActiveCompletedCareTakers() {
         userName: shift.user.name,
         uniqueId: `${shift.id}-${shift.clockIn}`, // Generate uniqueId once
       }));
-      const shiftsTotalData = completedShiftData.reduce((acc, shift) => {
-        const user_id = shift.userId;
-        if (!acc[user_id]) {
-          acc[user_id] = {
-            userId: user_id,
-            userName: shift.userName,
-            totalShifts: 0,
-            totalHours: 0,
-          };
-        }
-        acc[user_id].totalShifts++;
-        acc[user_id].totalHours += shift.clockOut
-          ? moment(shift.clockOut).diff(moment(shift.clockIn), "hours")
-          : 0;
-        return acc;
-      }, {} as Record<string, TableShiftTotal>);
+      // const shiftsTotalData = completedShiftData.reduce((acc, shift) => {
+      //   const user_id = shift.userId;
+      //   if (!acc[user_id]) {
+      //     acc[user_id] = {
+      //       userId: user_id,
+      //       userName: shift.userName,
+      //       totalShifts: 0,
+      //       totalHours: 0,
+      //     };
+      //   }
+      //   acc[user_id].totalShifts++;
+      //   acc[user_id].totalHours += shift.clockOut
+      //     ? moment(shift.clockOut).diff(moment(shift.clockIn), "hours")
+      //     : 0;
+      //   return acc;
+      // }, {} as Record<string, TableShiftTotal>);
       setActiveShifts(activeShiftData);
       setCompletedShifts(completedShiftData);
-      setShiftsTotal(Object.values(shiftsTotalData));
+      // setShiftsTotal(Object.values(shiftsTotalData));
       setShiftsLoading(false);
     }
     if (error.shifts) {
@@ -318,24 +318,24 @@ export default function ActiveCompletedCareTakers() {
     },
   ];
 
-  const columnsShiftsTotal = [
-    // Columns for the active shifts table
-    {
-      title: "Name",
-      dataIndex: "userName",
-      key: "name",
-    },
-    {
-      title: "Total Shifts",
-      dataIndex: "totalShifts",
-      key: "totalShifts",
-    },
-    {
-      title: "Total Hours",
-      dataIndex: "totalHours",
-      key: "totalHours",
-    },
-  ];
+  // const columnsShiftsTotal = [
+  //   // Columns for the active shifts table
+  //   {
+  //     title: "Name",
+  //     dataIndex: "userName",
+  //     key: "name",
+  //   },
+  //   {
+  //     title: "Total Shifts",
+  //     dataIndex: "totalShifts",
+  //     key: "totalShifts",
+  //   },
+  //   {
+  //     title: "Total Hours",
+  //     dataIndex: "totalHours",
+  //     key: "totalHours",
+  //   },
+  // ];
 
   const handleModalOpen = (shift: TableShift) => {
     // Open the modal to view the shift details
