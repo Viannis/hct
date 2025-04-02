@@ -23,6 +23,8 @@ export default function PDFPreviewExport({
       clockOut: null,
       clockInNote: "",
       clockOutNote: "",
+      latitude: "",
+      longitude: "",
       userName: "...", // Placeholder for the dummy row
       uniqueId: "",
     });
